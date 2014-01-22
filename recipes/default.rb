@@ -16,3 +16,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+log "Installing required gems..."
+
+# Install gems during compile phase so that they are available to files
+# which require them during converge phase.
+chef_gem 'right_api_client'
