@@ -2,6 +2,7 @@ source 'https://rubygems.org'
 
 gem 'berkshelf'
 gem 'thor-foodcritic'
+gem 'rightscale_upload', :github => 'rightscale/rightscale_upload'
 
 group :integration do
   gem 'strainer', '~> 3.3.0'
