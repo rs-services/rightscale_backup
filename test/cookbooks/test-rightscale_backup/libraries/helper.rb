@@ -130,7 +130,7 @@ module RightscaleBackupTest
     #
     def is_backup_created?(name, lineage)
       filter = {
-        "name" => name
+        "name" => name,
         "committed" => "true",
         "completed" => "true"
       }
@@ -218,28 +218,28 @@ module RightscaleBackupTest
     #
     # @param device [String] the device to be formatted and mounted
     #
-    def format_and_mount_device(device)
+    def format_and_mount_device(device, mount_point)
       Chef::Log.info "Formatting #{device} as ext3..."
       execute_command("mkfs.ext3 -F #{device}")
 
-      Chef::Log.info "Mounting #{device} at #{MOUNT_POINT}..."
-      execute_command("mkdir -p #{MOUNT_POINT}")
-      execute_command("mount #{device} #{MOUNT_POINT}")
+      Chef::Log.info "Mounting #{device} at #{mount_point}..."
+      execute_command("mkdir -p #{mount_point}")
+      execute_command("mount #{device} #{mount_point}")
     end
 
     # Unmounts device from the mount point.
     #
     # @param device [String] the device to be unmounted
     #
-    def unmount_device(device)
-      Chef::Log.info "Unmounting #{device} from #{MOUNT_POINT}"
-      execute_command("umount #{MOUNT_POINT}")
+    def unmount_device(device, mount_point)
+      Chef::Log.info "Unmounting #{device} from #{mount_point}"
+      execute_command("umount #{mount_point}")
     end
 
     # Generates a random test file.
     #
-    def generate_test_file
-      test_file = MOUNT_POINT + '/test_file'
+    def generate_test_file(mount_point)
+      test_file = mount_point + '/test_file'
       Chef::Log.info "Generating random file into #{test_file}..."
       execute_command("dd if=/dev/urandom of=#{test_file} bs=16M count=8")
     end

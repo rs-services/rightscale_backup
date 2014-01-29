@@ -1,5 +1,5 @@
 #
-# Cookbook Name:: test-rightscale_volume
+# Cookbook Name:: test-rightscale_backup
 # Recipe:: test
 #
 # Copyright (C) 2013 RightScale, Inc.
@@ -52,10 +52,10 @@ rightscale_volume test_volume_1 do
   action [:create, :attach]
 end
 
-ruby_block 'mount volume and generate random test file' do
+ruby_block "mount #{test_volume_1} and generate random test file" do
   block do
-    format_and_mount_device(node['rightscale_volume'][test_volume_1]['device'])
-    generate_test_file
+    format_and_mount_device(node['rightscale_volume'][test_volume_1]['device'], '/mnt/storage1')
+    generate_test_file('/mnt/storage1')
   end
 end
 
@@ -65,22 +65,17 @@ rightscale_volume test_volume_2 do
   action [:create, :attach]
 end
 
-ruby_block 'mount volume and generate random test file' do
+ruby_block "mount #{test_volume_2} and generate random test file" do
   block do
-    format_and_mount_device(node['rightscale_volume'][test_volume_2]['device'])
-    generate_test_file
+    format_and_mount_device(node['rightscale_volume'][test_volume_2]['device'], '/mnt/storage2')
+    generate_test_file('/mnt/storage2')
   end
 end
 
-# Take a backup of volume 1 and 2
+# Backup the volumes
 rightscale_backup backup_1 do
   lineage backup_lineage
   description "test backup created from rightscale_backup cookbook"
-  devices lazy do
-    devices = []
-    node['rightscale_volume'].each { |name, attribute| devices.push(attribute['device']) }
-    devices
-  end
   action :create
 end
 
@@ -95,9 +90,39 @@ ruby_block "ensure backup #{backup_1} created" do
   end
 end
 
+# Take another backup for testing clean up action
+rightscale_backup backup_2 do
+  lineage backup_lineage
+  description "test backup created from rightscale_backup cookbook"
+  action :create
+end
+
+# Ensure that the backup was created in the cloud
+ruby_block "ensure backup #{backup_2} created" do
+  block do
+    if is_backup_created?(backup_2, backup_lineage)
+      Chef::Log.info 'TESTING action_create -- PASSED'
+    else
+      raise 'TESTING action_create -- FAILED'
+    end
+  end
+end
+
 # Detach and delete volume 1 and 2
+ruby_block "unmount #{test_volume_1}" do
+  block do
+    unmount_device(node['rightscale_volume'][test_volume_1]['device'], '/mnt/storage1')
+  end
+end
+
 rightscale_volume test_volume_1 do
   action [:detach, :delete]
+end
+
+ruby_block "unmount #{test_volume_2}" do
+  block do
+    unmount_device(node['rightscale_volume'][test_volume_1]['device'], '/mnt/storage2')
+  end
 end
 
 rightscale_volume test_volume_2 do
@@ -125,29 +150,6 @@ end
 
 log '***** TESTING action_cleanup - delete old backups *****'
 
-# Take a backup of one of the devices
-rightscale_backup backup_2 do
-  lineage backup_lineage
-  description "test backup created from rightscale_backup cookbook"
-  devices lazy do
-    devices = []
-    devices.push(node['rightscale_backup']['devices'].first)
-    devices
-  end
-  action :create
-end
-
-# Ensure backup 2 was created
-ruby_block "ensure backup #{backup_2} created" do
-  block do
-    if is_backup_created?(backup_2, backup_lineage)
-      Chef::Log.info 'TESTING action_create -- PASSED'
-    else 
-      raise 'TESTING action_create -- FAILED'
-    end
-  end
-end
-
 # Clean up backups
 rightscale_backup 'test_backup_DELETE_ME' do
   lineage "test_backup_lineage"
@@ -164,7 +166,7 @@ ruby_block "ensure backups were cleaned up" do
   block do
     if get_backups(backup_lineage).length == 1
       Chef::Log.info 'TESTING action_cleanup -- PASSED'
-    else·
+    else
       raise 'TESTING action_cleanup -- FAILED'
     end
   end

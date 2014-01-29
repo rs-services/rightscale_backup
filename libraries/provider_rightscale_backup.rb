@@ -29,6 +29,8 @@ class Chef
         @api_client = initialize_api_client
 
         # From the node, get the list of devices to which the volumes are attached
+        # TODO: We don't use this attribute anywhere at the moment. This attribute
+        # is intended to be used in the +:create+ action at some point later.
         unless node['rightscale_backup'].empty?
           @current_resource.devices = node['rightscale_backup']['devices']
         end
@@ -41,30 +43,19 @@ class Chef
       def action_create
         raise_backup_lineage_missing unless @new_resource.lineage
 
-        # If the devices to be backed-up was specified in the resource, then
-        # backup only those devices. Else, backup all devices attached to the server.
-        devices = []
-        if @new_resource.devices
-          # Push device to the array if it is not in the array already
-          devices |= @new_resource.devices
-        else
-          Chef::Log.info "No devices are specified! Backup will be created" +
-            " for all volumes currently attached to the instance."
-          devices = @current_resource.devices
-        end
+        Chef::Log.info "Creating backup of all volumes currently attached to the instance..."
 
-        if devices.empty?
-          raise "No volumes are attached to this instance to backup!" +
-            " Please create and attach a volume using the 'create' and 'attach'" +
-            " actions of the 'rightscale_volume' resource before running backup."
-        end
-
-        backup = create_backup(get_volume_attachment_hrefs(devices))
+        # Backup all volumes attached to the instance.
+        # TODO: Have a 'device' attribute for rightscale_backup resource which specifies
+        # what device to back up. At this moment, we backup all devices by default due
+        # to issues with RightScale API Backup resource and the design of this cookbook.
+        # See https://wookiee.rightscale.com/x/J__cAQ for more information.
+        backup = create_backup(get_volume_attachment_hrefs)
 
         if backup.nil?
-          raise "Backup for devices '#{devices.join(', ')}' was not created successfully!"
+          raise "Backup was not created successfully!"
         else
-          Chef::Log.info "Backup for devices '#{devices.join(', ')}' created and committed successfully."
+          Chef::Log.info "Backup for devices '#{backup.show.name}' created and committed successfully."
           @new_resource.updated_by_last_action(true)
         end
       end
@@ -240,20 +231,13 @@ class Chef
 
       # Gets all volume attachment hrefs for the specified devices.
       #
-      # @param devices [Array] the array of devices
-      #
       # @return [Array<String>] the volume attachment hrefs
       #
-      def get_volume_attachments(devices = [])
+      def get_volume_attachment_hrefs
         attachments = @api_client.volume_attachments.index(:filter => ["instance_href==#{get_instance_href}"])
 
-        attachments = attachments.select do |attachment|
-          device = attachment.show.device
-          next if device == 'unknown'
-          devices.include?(device) unless devices.empty?
-        end
-
-        attachments.map { |attachment| attachment.show.href }
+        attachments.reject! { |attachment| attachment.device == 'unknown' }
+        attachments.map { |attachment| attachment.href }
       end
 
       # Gets href of a volume_type.
