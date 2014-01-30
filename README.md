@@ -227,7 +227,7 @@ of them will be cleaned up.
   </tr>
   <tr>
     <td>timeout</td>
-    <td>Throws an error if the volume could not be backed up in the cloud within this
+    <td>Throws an error if the volume could not be cleaned up in the cloud within this
 timeout (in minutes)</td>
     <td><tt>15</tt></td>
   </tr>
@@ -272,7 +272,8 @@ end
 **Example 3:** Deletes old backups
 
 ```ruby
-# Deletes old backups
+# Deletes old backups from the 'db_backup_lineage' lineage. After this action
+# there will be only 2 backups in the cloud.
 rightscale_backup "db_data_volume_backup" do
   lineage 'db_backup_lineage'
   keep_last 2
