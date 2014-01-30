@@ -121,7 +121,7 @@ end
 
 ruby_block "unmount #{test_volume_2}" do
   block do
-    unmount_device(node['rightscale_volume'][test_volume_1]['device'], '/mnt/storage2')
+    unmount_device(node['rightscale_volume'][test_volume_2]['device'], '/mnt/storage2')
   end
 end
 
@@ -140,7 +140,7 @@ end
 # Ensure that 2 volumes were restored
 ruby_block "ensure that 2 volumes with names #{backup_1} were restored" do
   block do
-    if is_backup_restored?(backup_1) && get_volume_attachments.length == 2
+    if get_volume_attachments.length == 2
       Chef::Log.info 'TESTING action_restore -- PASSED'
     else
       raise 'TESTING action_restore -- FAILED'
@@ -151,8 +151,11 @@ end
 log '***** TESTING action_cleanup - delete old backups *****'
 
 # Clean up backups
-rightscale_backup 'test_backup_DELETE_ME' do
-  lineage "test_backup_lineage"
+# API 1.5 overrides "keep_last" to 1 if we pass "keep_last" as anything less than 1.
+# Therefore, at least one backup (latest) in a lineage will exist after the
+# clean up action.
+rightscale_backup backup_1 do
+  lineage backup_lineage
   keep_last 1
   dailies 0
   weeklies 0
@@ -175,7 +178,7 @@ end
 # clean up everything
 ruby_block "clean up resources created during the test" do
   block do
-    delete_backups
+    delete_backups(backup_lineage)
     detach_volumes
     delete_volumes(:name => backup_1)
     delete_volumes(:name => test_volume_1)

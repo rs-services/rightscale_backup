@@ -21,7 +21,13 @@ require "chef/provider"
 
 class Chef
   class Provider
+    # A Chef provider for the rightscale_backup resource.
+    #
     class RightscaleBackup < Chef::Provider
+      # Loads @current_resource instance variable with backup hash values in the
+      # node if backup exists in the node. Also initializes right_api_client for
+      # making instance-facing RightScale API calls.
+      #
       def load_current_resource
         @current_resource = Chef::Resource::RightscaleBackup.new(@new_resource.name)
         node.set['rightscale_backup'] ||= {}
@@ -123,7 +129,7 @@ class Chef
       def cleanup_backups(lineage, cleanup_options)
         # Get the parameters required for cleaning up
         params = {
-          :cloud_href => api_cloud_href,
+          :cloud_href => get_cloud_href,
           :lineage => lineage
         }
         params.merge!(cleanup_options)
@@ -156,6 +162,7 @@ class Chef
 
         params[:from_master] = @new_resource.from_master unless @new_resource.from_master.nil?
 
+        new_backup = nil
         Timeout::timeout(@current_resource.timeout * 60) do
           begin
             # Call the API to create the backup.
@@ -165,7 +172,7 @@ class Chef
             # Wait till the backup is complete.
             while (completed = new_backup.show.completed) != true
               Chef::Log.info "Waiting for backup to complete... Status is '#{completed}'"
-              sleep 2
+              sleep 5
             end
           rescue Timeout::Error => e
             raise e, "Backup did not create within #{@current_resource.timeout * 60} seconds!"
@@ -221,6 +228,14 @@ class Chef
         devices
       end
 
+      # Gets the href of the cloud.
+      #
+      # @return [String] the cloud href
+      #
+      def get_cloud_href
+        @api_client.get_instance.links.detect { |link| link['rel'] == 'cloud' }['href']
+      end
+
       # Gets the instance href.
       #
       # @return [String] the instance href
@@ -240,73 +255,21 @@ class Chef
         attachments.map { |attachment| attachment.href }
       end
 
-      # Gets href of a volume_type.
+      # Gets href of a volume type for a given volume type name.
       #
-      # @param size [Integer] the volume size (used by CloudStack to select appropriate volume type)
-      # @param options [Hash] the optional parameters required to choose volume type
+      # @param volume_type [String] the volume type name
       #
       # @return [String, nil] the volume type href
       #
-      # @raise [RuntimeError] if the volume type could not be found for the requested size (on CloudStack)
-      #
-      def get_volume_type_href(size, options = {})
+      def get_volume_type_href(volume_type)
         case node['cloud']['provider']
         when "rackspace-ng"
           # Rackspace Open Cloud offers two types of devices - SATA and SSD
           volume_types = @api_client.volume_types.index
 
           # Set SATA as the default volume type for Rackspace Open Cloud
-          options[:volume_type] = 'SATA' if options[:volume_type].nil?
-          volume_type = volume_types.detect do |type|
-            type.name.downcase == options[:volume_type].downcase
-          end
-          volume_type.href
-
-        when "cloudstack"
-          # CloudStack has the concept of a "custom" disk offering
-          # Anything that is not a custom type is a fixed size.
-          # If there is not a custom type, we will use the closest size which is
-          # greater than or equal to the requested size.
-          # If there are multiple custom volume types or multiple volume types
-          # with the closest size, the one with the greatest resource_uid will
-          # be used.
-          # If the resource_uid is non-numeric (e.g. a UUID), the first returned
-          # valid volume type will be used.
-          volume_types = @api_client.volume_types.index
-          custom_volume_types = volume_types.select { |type| type.size.to_i == 0 }
-
-          if custom_volume_types.empty?
-            volume_types.reject! { |type| type.size.to_i < size }
-            minimum_size = volume_types.map { |type| type.size.to_i }.min
-            volume_types.reject! { |type| type.size.to_i != minimum_size }
-          else
-            volume_types = custom_volume_types
-          end
-
-          if volume_types.empty?
-            raise "Could not find a volume type that is large enough for #{size}"
-          elsif volume_types.size == 1
-            volume_type = volume_types.first
-          elsif volume_types.first.resource_uid =~ /^[0-9]+$/
-            Chef::Log.info "Found multiple valid volume types"
-            Chef::Log.info "Using the volume type with the greatest numeric resource_uid"
-            volume_type = volume_types.max_by { |type| type.resource_uid.to_i }
-          else
-            Chef::Log.info "Found multiple valid volume types"
-            Chef::Log.info "Using the first returned valid volume type"
-            volume_type = volume_types.first
-          end
-
-          if volume_type.size.to_i == 0
-            Chef::Log.info "Found volume type that supports custom sizes:" +
-              " #{volume_type.name} (#{volume_type.resource_uid})"
-          else
-            Chef::Log.info "Did not find volume type that supports custom sizes"
-            Chef::Log.info "Using closest volume type: #{volume_type.name}" +
-              " (#{volume_type.resource_uid}) which is #{volume_type.size} GB"
-          end
-
-          volume_type.href
+          volume_type = 'SATA' if volume_type.nil?
+          volume_types.detect { |type| type.name.downcase == volume_type.downcase }.href
         end
       end
 
@@ -369,7 +332,7 @@ class Chef
         params[:backup][:size] = @new_resource.size if @new_resource.size
 
         if options[:volume_type]
-          volume_type_href = get_volume_type_href(@new_resource.size, options)
+          volume_type_href = get_volume_type_href(options[:volume_type])
           params[:backup][:volume_type_href] = volume_type_href unless volume_type_href.nil?
         end
 
@@ -400,7 +363,7 @@ class Chef
               raise "Restore failed with status '#{restore_status}'!" if restore_status == "failed"
 
               Chef::Log.info " Waiting for restore to complete... Status is #{restore_status}"
-              sleep 2
+              sleep 5
               restore_status = restore.show.summary.split(": ").first
             end
           rescue RestClient::Exception => e

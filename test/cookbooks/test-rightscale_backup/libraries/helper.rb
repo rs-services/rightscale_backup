@@ -118,7 +118,7 @@ module RightscaleBackupTest
     #
     def get_volume_attachments(filter = {})
       filter.merge!({:instance_href => api_client.get_instance.href})
-      api_client.volume_attachments.index(:filter => build_filter(filter))
+      api_client.volume_attachments.index(:filter => build_filters(filter))
     end
 
     # Checks if the backup was created in the cloud.
@@ -130,41 +130,16 @@ module RightscaleBackupTest
     #
     def is_backup_created?(name, lineage)
       filter = {
-        "name" => name,
         "committed" => "true",
         "completed" => "true"
       }
-      get_backups(lineage, filter).empty? ? false : true
-    end
-
-    # Checks if the backup was restored to an instance.
-    #
-    # @param volume_name [String] the volume name restored
-    #
-    # @return [Boolean] true if backup was created, false otherwise
-    #
-    def is_backup_restored?(volume_name)
-      restored_volumes = get_volumes(:name => volume_name)
-      return false if restored_volumes.empty?
-
-      restored_volumes.each do |volume|
-        return false unless is_volume_attached?(volume.show.resource_uid)
+      backups = get_backups(lineage, filter).map { |backup| backup.name }
+      if backups.empty?
+        return false
+      else
+        return true if backups.include?(name)
       end
-
-      true
-    end
-
-    # Checks if the volume is attached to an instance in the cloud.
-    #
-    # @param volume_id [String] the ID of the volume to be queried
-    #
-    # @return [Boolean] true if the volume is attached, false otherwise
-    #
-    def is_volume_attached?(volume_id)
-      volume_to_be_attached = get_volumes(:resource_uid => volume_id).first
-      return false if volume_to_be_attached.nil?
-
-      get_volume_attachments(:volume_href => volume_to_be_attached.href).empty? ? false : true
+      false
     end
 
     # Checks if the volume is detached from an instance in the cloud.
