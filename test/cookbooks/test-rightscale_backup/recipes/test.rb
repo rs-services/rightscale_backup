@@ -24,10 +24,6 @@ end
 include_recipe 'rightscale_volume::default'
 include_recipe 'rightscale_backup::default'
 
-# Include cookbook-delayed_evaluator for delaying evaluation of node attributes
-# to converge phase instead of compile phase
-include_recipe 'delayed_evaluator'
-
 # Set minimum volume size to 100GB for Rackspace Open Clouds (cloud-specific feature)
 volume_size = node['cloud']['provider'] == 'rackspace-ng' ? 100 : 1
 
