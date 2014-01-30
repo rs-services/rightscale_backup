@@ -30,12 +30,15 @@ volume_size = node['cloud']['provider'] == 'rackspace-ng' ? 100 : 1
 # Set the volume name with the current UNIX timestamp so that multiple test runs
 # do not overlap each other in case of failures
 timestamp = Time.now.to_i
-test_volume_1 = "test_device_1_#{timestamp}_DELETE_ME"
-test_volume_2 = "test_device_2_#{timestamp}_DELETE_ME"
 
-backup_1 = "test_backup_1_DELETE_ME"
-backup_2 = "test_backup_2_DELETE_ME"
-backup_lineage = "test_backup_lineage_#{timestamp}"
+volume_name_prefix = "test_device_#{timestamp}_DELETE_ME"
+test_volume_1 = "#{volume_name_prefix}_1"
+test_volume_2 = "#{volume_name_prefix}_2"
+
+backup_name_prefix = "test_backup_#{timestamp}_DELETE_ME"
+backup_1 = "#{backup_name_prefix}_1"
+backup_2 = "#{backup_name_prefix}_2"
+backup_lineage = "#{backup_name_prefix}_lineage"
 
 # *** Testing actions supported by the rightscale_backup cookbook ***
 
@@ -174,10 +177,13 @@ end
 # clean up everything
 ruby_block "clean up resources created during the test" do
   block do
+    Chef::Log.info "Deleting all backups in '#{backup_lineage}' lineage..."
     delete_backups(backup_lineage)
+    Chef::Log.info "Detaching all volumes from the server..."
     detach_volumes
-    delete_volumes(:name => backup_1)
-    delete_volumes(:name => test_volume_1)
-    delete_volumes(:name => test_volume_2)
+    Chef::Log.info "Deleting volumes named '#{backup_name_prefix}'..."
+    delete_volumes(:name => backup_name_prefix)
+    Chef::Log.info "Deleting volumes named '#{volume_name_prefix}'..."
+    delete_volumes(:name => volume_name_prefix)
   end
 end

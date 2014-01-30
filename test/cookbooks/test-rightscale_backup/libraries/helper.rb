@@ -74,7 +74,12 @@ module RightscaleBackupTest
     #
     def detach_volumes
       get_volume_attachments.each do |attachment|
+        volume = attachment.volume
         attachment.destroy
+        while ((status = volume.show.status) == 'in-use')
+          Chef::Log.info "Waiting for volume to detach... Status is '#{status}'"
+          sleep 5
+        end
       end
     end
 

@@ -74,7 +74,7 @@ class Chef
         # If no timestamp was specified get the latest backup for the lineage.
         # API 1.5 does not do an inclusive search for timestamp so
         # increment by 1
-        timestamp = @new_resource.timestamp ? Time.at(@new_resource.timestamp.to_i + 1) : Time.now
+        timestamp = @new_resource.timestamp ? Time.at(@new_resource.timestamp + 1) : Time.now
 
         # Get backup for the specified lineage and timestamp
         backup = find_latest_backup(@new_resource.lineage, timestamp, @new_resource.from_master)
