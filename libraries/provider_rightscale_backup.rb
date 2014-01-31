@@ -38,7 +38,7 @@ class Chef
         # TODO: We don't use this attribute anywhere at the moment. This attribute
         # is intended to be used in the +:create+ action at some point later.
         unless node['rightscale_backup'].empty?
-          @current_resource.devices = node['rightscale_backup']['devices']
+          @current_resource.devices = node['rightscale_backup'][@current_resource.name]['devices']
         end
         @current_resource.timeout = @new_resource.timeout if @new_resource.timeout
         @current_resource
@@ -88,7 +88,8 @@ class Chef
 
         if restore_status == 'completed'
           restored_devices = get_current_devices - devices_before_restore
-          node.set['rightscale_backup']['devices'] = restored_devices
+          node.set['rightscale_backup'][@current_resource.name] ||= {}
+          node.set['rightscale_backup'][@current_resource.name]['devices'] = restored_devices
           Chef::Log.info "Backups were restored successfully to #{restored_devices.join(', ')}"
           @new_resource.updated_by_last_action(true)
         else
@@ -157,10 +158,10 @@ class Chef
         }
 
         unless @new_resource.description.nil? || @new_resource.description.empty?
-          params[:description] = @new_resource.description
+          params[:backup][:description] = @new_resource.description
         end
 
-        params[:from_master] = @new_resource.from_master unless @new_resource.from_master.nil?
+        params[:backup][:from_master] = @new_resource.from_master unless @new_resource.from_master.nil?
 
         new_backup = nil
         Timeout::timeout(@current_resource.timeout * 60) do
@@ -190,7 +191,7 @@ class Chef
       # timestamp.
       #
       # @param lineage [String] the backup lineage
-      # @param timestamp [Integer] the timestamp in epoch seconds
+      # @param timestamp [Time] the timestamp
       # @param from_master [Boolean] the flag to find only master backups
       #
       # @return [RightApi::ResourceDetail, nil] the backup found or nil

@@ -90,15 +90,15 @@ class Chef
 
       # UNIX timestamp at which the backup was taken.
       #
-      # @param arg [String] the backup timestamp
+      # @param arg [Integer] the backup timestamp
       #
-      # @return [String] the backup timestamp
+      # @return [Integer] the backup timestamp
       #
       def timestamp(arg = nil)
         set_or_return(
           :timestamp,
           arg,
-          :kind_of => String
+          :kind_of => Integer
         )
       end
 
