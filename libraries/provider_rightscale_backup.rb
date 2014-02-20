@@ -53,7 +53,7 @@ class Chef
         # TODO: Have a 'device' attribute for rightscale_backup resource which specifies
         # what device to back up. At this moment, we backup all devices by default due
         # to issues with RightScale API Backup resource and the design of this cookbook.
-        # See https://wookiee.rightscale.com/x/J__cAQ for more information.
+        # See https://github.com/rightscale-cookbooks/rightscale_backup/issues/2
         backup = create_backup(get_volume_attachment_hrefs)
 
         Chef::Log.info "Backup for devices '#{backup.show.name}' created and committed successfully."
