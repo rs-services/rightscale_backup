@@ -24,12 +24,6 @@ class Chef
     # A Chef resource for managing volume backups in RightScale environment.
     #
     class RightscaleBackup < Chef::Resource
-      # Devices to backup
-      attr_accessor :devices
-
-      # Timeout value for performing actions
-      attr_accessor :timeout
-
       # Initializes rightscale_backup resource.
       #
       # @param name [String] name of the resource.
@@ -84,21 +78,22 @@ class Chef
         set_or_return(
           :lineage,
           arg,
+          :required => true,
           :kind_of => String
         )
       end
 
       # UNIX timestamp at which the backup was taken.
       #
-      # @param arg [Integer] the backup timestamp
+      # @param arg [Integer, Time] the backup timestamp
       #
-      # @return [Integer] the backup timestamp
+      # @return [Integer, Time] the backup timestamp
       #
       def timestamp(arg = nil)
         set_or_return(
           :timestamp,
           arg,
-          :kind_of => Integer
+          :kind_of => [Integer, Time]
         )
       end
 
@@ -127,6 +122,7 @@ class Chef
         set_or_return(
           :from_master,
           arg,
+          :kind_of => [TrueClass, FalseClass],
           :equal_to => [true, false],
           :default => false
         )

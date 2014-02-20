@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 
-log "Installing required gems..."
+Chef::Log.info "Installing required gems..."
 
 # Install gems during compile phase so that they are available to files
 # which require them during converge phase.

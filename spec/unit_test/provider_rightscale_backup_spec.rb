@@ -18,6 +18,7 @@
 #
 
 require 'spec_helper'
+require 'provider_rightscale_backup'
 
 describe Chef::Provider::RightscaleBackup do
   let(:provider) do
@@ -100,17 +101,6 @@ describe Chef::Provider::RightscaleBackup do
     volume_type
   end
 
-  # Returns an array of given object.
-  #
-  # @param object [Object] the object that should be returned in an array
-  # @param n [Integer] the size of the array
-  #
-  # @return [<Object>Array] the array of objects
-  #
-  def array_of(object, n = 1)
-    Array.new(n) { object }
-  end
-
   describe "#load_current_resource" do
     context "when the backup does not exist in the node" do
       it "should return current_resource" do
@@ -162,14 +152,6 @@ describe Chef::Provider::RightscaleBackup do
     end
 
     describe "#action_create" do
-      context "backup lineage not provided" do
-        it "should not create the backup" do
-          new_resource.lineage(nil)
-          provider.should_not_receive(:create_backup)
-          expect { run_action(:create) }.to raise_error
-        end
-      end
-
       context "given a backup lineage" do
         it "should create the backup" do
           new_resource.lineage('some_lineage')
@@ -177,26 +159,10 @@ describe Chef::Provider::RightscaleBackup do
           provider.should_receive(:create_backup).and_return(backup_resource)
           run_action(:create)
         end
-
-        context "backup was not successfully created" do
-          it "should raise an exception" do
-            provider.stub(:create_backup).and_return(nil)
-            expect { run_action(:create) }.to raise_error
-          end
-        end
       end
     end
 
     describe "#action_restore" do
-      context "backup lineage not provided" do
-        it "should not restore the backup" do
-          new_resource.lineage(nil)
-          provider.should_not_receive(:find_latest_backup)
-          provider.should_not_receive(:restore_backup)
-          expect { run_action(:restore) }.to raise_error
-        end
-      end
-
       context "given a backup lineage" do
         context "a backup is found in the lineage" do
           it "should restore the backup" do
@@ -219,29 +185,22 @@ describe Chef::Provider::RightscaleBackup do
               provider.should_receive(:find_latest_backup).and_return(backup_stub)
               provider.stub(:get_current_devices).and_return(['device_1', 'device_2'])
               provider.should_receive(:restore_backup).and_return('failed')
-              expect { run_action(:restore) }.to raise_error
+              expect { run_action(:restore) }.to raise_error(RuntimeError)
             end
           end
         end
 
         context "no backups found in the lineage" do
           it "should raise an exception" do
+            new_resource.lineage('some_lineage')
             provider.stub(:find_latest_backup).and_return(nil)
-            expect { run_action(:restore) }.to raise_error
+            expect { run_action(:restore) }.to raise_error(RuntimeError)
           end
         end
       end
     end
 
     describe "#action_cleanup" do
-      context "backup lineage not provided" do
-        it "should not clean up backups" do
-          new_resource.lineage(nil)
-          provider.should_not_receive(:cleanup_backups)
-          expect { run_action(:cleanup) }.to raise_error
-        end
-      end
-
       context "given a backup lineage" do
         it "should clean up snapshots" do
           new_resource.lineage('some_lineage')
@@ -356,7 +315,7 @@ describe Chef::Provider::RightscaleBackup do
         backup_resource.should_receive(:index).with({
           :lineage => 'some_lineage',
           :filter => filter
-        }).and_return(array_of(backup_resource))
+        }).and_return([backup_resource])
         provider.send(:find_latest_backup, 'some_lineage', timestamp, true)
       end
     end
@@ -364,7 +323,7 @@ describe Chef::Provider::RightscaleBackup do
     describe "#get_volume_attachment_hrefs" do
       it "should return the attached volumes based on the given filter" do
         client_stub.should_receive(:volume_attachments).and_return(volume_attachment_resource)
-        volume_attachment_resource.should_receive(:index).and_return(array_of(volume_attachment_stub))
+        volume_attachment_resource.should_receive(:index).and_return([volume_attachment_stub])
         attachment_hrefs = provider.send(:get_volume_attachment_hrefs)
         attachment_hrefs.should be_a_kind_of(Array)
       end

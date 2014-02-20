@@ -21,7 +21,6 @@ class Chef::Resource
   include RightscaleBackupTest::Helper
 end
 
-include_recipe 'rightscale_volume::default'
 include_recipe 'rightscale_backup::default'
 
 # Set minimum volume size to 100GB for Rackspace Open Clouds (cloud-specific feature)

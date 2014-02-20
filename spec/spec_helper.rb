@@ -21,5 +21,4 @@ lib = File.expand_path('../../libraries', __FILE__)
 $:.unshift(lib) unless $:.include?(lib)
 
 require 'chefspec'
-require 'provider_rightscale_backup'
 require 'resource_rightscale_backup'

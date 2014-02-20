@@ -38,17 +38,15 @@ class Chef
         # TODO: We don't use this attribute anywhere at the moment. This attribute
         # is intended to be used in the +:create+ action at some point later.
         unless node['rightscale_backup'].empty?
-          @current_resource.devices = node['rightscale_backup'][@current_resource.name]['devices']
+          @current_resource.devices(node['rightscale_backup'][@current_resource.name]['devices'])
         end
-        @current_resource.timeout = @new_resource.timeout if @new_resource.timeout
+        @current_resource.timeout(@new_resource.timeout) if @new_resource.timeout
         @current_resource
       end
 
       # Creates a backup of the volumes in the cloud.
       #
       def action_create
-        raise_backup_lineage_missing unless @new_resource.lineage
-
         Chef::Log.info "Creating backup of all volumes currently attached to the instance..."
 
         # Backup all volumes attached to the instance.
@@ -58,19 +56,13 @@ class Chef
         # See https://wookiee.rightscale.com/x/J__cAQ for more information.
         backup = create_backup(get_volume_attachment_hrefs)
 
-        if backup.nil?
-          raise "Backup was not created successfully!"
-        else
-          Chef::Log.info "Backup for devices '#{backup.show.name}' created and committed successfully."
-          @new_resource.updated_by_last_action(true)
-        end
+        Chef::Log.info "Backup for devices '#{backup.show.name}' created and committed successfully."
+        @new_resource.updated_by_last_action(true)
       end
 
       # Restores a backup of volumes from the cloud on to an instance.
       #
       def action_restore
-        raise_backup_lineage_missing unless @new_resource.lineage
-
         # If no timestamp was specified get the latest backup for the lineage.
         # API 1.5 does not do an inclusive search for timestamp so
         # increment by 1
@@ -100,8 +92,6 @@ class Chef
       # Cleans up old backups from the cloud.
       #
       def action_cleanup
-        raise_backup_lineage_missing unless @new_resource.lineage
-
         # Get values for the number of backups to clean up specified by the user
         # If no values are specified use the defaults
         cleanup_options = {
@@ -113,6 +103,8 @@ class Chef
         }
 
         cleanup_backups(@new_resource.lineage, cleanup_options)
+
+        @new_resource.updated_by_last_action(true)
       end
 
     private
@@ -161,15 +153,13 @@ class Chef
           params[:backup][:description] = @new_resource.description
         end
 
-        params[:backup][:from_master] = @new_resource.from_master unless @new_resource.from_master.nil?
+        params[:backup][:from_master] = @new_resource.from_master
 
-        new_backup = nil
+        # Call the API to create the backup.
+        Chef::Log.info "Creating a backup with the following parameters: #{params.inspect}..."
+        new_backup = @api_client.backups.create(params)
         Timeout::timeout(@current_resource.timeout * 60) do
           begin
-            # Call the API to create the backup.
-            Chef::Log.info "Creating a backup with the following parameters: #{params.inspect}..."
-            new_backup = @api_client.backups.create(params)
-
             # Wait till the backup is complete.
             while (completed = new_backup.show.completed) != true
               Chef::Log.info "Waiting for backup to complete... Status is '#{completed}'"
@@ -209,7 +199,7 @@ class Chef
 
       # Gets all supported devices from /proc/partitions.
       #
-      # @return [Array] the devices list.
+      # @return [Array<String>] the devices list.
       #
       def get_current_devices
         # Read devices that are currently in use from the last column in /proc/partitions
@@ -252,11 +242,14 @@ class Chef
       def get_volume_attachment_hrefs
         attachments = @api_client.volume_attachments.index(:filter => ["instance_href==#{get_instance_href}"])
 
+        # Reject attachments whose device parameter is set to 'unknown'
         attachments.reject! { |attachment| attachment.device == 'unknown' }
         attachments.map { |attachment| attachment.href }
       end
 
-      # Gets href of a volume type for a given volume type name.
+      # Gets href of a volume type for a given volume type name. This returns nil
+      # for all clouds that does not support volume types. Currently only
+      # Rackspace Open Cloud supports volume types.
       #
       # @param volume_type [String] the volume type name
       #
@@ -296,15 +289,6 @@ class Chef
         client = RightApi::Client.new(options)
         client.log(Chef::Log.logger)
         client
-      end
-
-      # Raises a RuntimeError with an error message if backup lineage was not
-      # provided in 'rightscale_backup' resource.
-      #
-      def raise_backup_lineage_missing
-        raise "Backup lineage attribute is missing. Lineage is a required" +
-          " attribute for all 'network_storage_backup' actions." +
-          " Specify backup lineage and try again."
       end
 
       # Restores a given backup and waits for the restore to complete.

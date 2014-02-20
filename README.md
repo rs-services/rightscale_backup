@@ -1,8 +1,10 @@
 # rightscale_backup cookbook
 
+[![Build Status](https://travis-ci.org/rightscale-cookbooks/rightscale_backup.png?branch=master)](https://travis-ci.org/rightscale-cookbooks/rightscale_backup)
+
 This cookbook provides a `rightscale_backup` resource that can create,
 restore, and clean up block device storage ("volume") backups on numerous
-public and private Iaas clouds.
+public and private IaaS clouds.
 
 A backup represents a collection of volume snapshots taken at the same
 time from one or more volumes attached to the server. A backup belongs
@@ -18,7 +20,7 @@ manage backups in the cloud.
 
 * The system being configured must be a RightScale managed VM to have the
 required access to the RightScale API.
-* Chef 10 or higher.
+* Chef 11 or higher.
 * Requires a RightScale account that is registered with all the cloud vendors
 you expect to provision on (e.g. AWS, Rackspace, Openstack, CloudStack, GCE,
 and Azure).
@@ -71,7 +73,7 @@ will be tagged with the following
     <td>Position of the snapshot in a backup</td>
   </tr>
   <tr>
-    <td><tt>rs_backup:timestamp=1391118125</tt></td>
+    <td><tt>rs_backup:timestamp=&lt;timestamp&gt;</tt></td>
     <td>Time at which the backup was taken</td>
   </tr>
 </table>
@@ -80,40 +82,46 @@ A backup is considered a *perfect backup* when it is completed (all the snapshot
 completed), committed (all the snapshots are committed), and the number of snapshots
 it found is equal to the number in the "rs_backup:count=" tag on each of the snapshots.
 
-**Parameters**
+#### Attributes
 <table>
   <tr>
     <th>Name</th>
     <th>Description</th>
     <th>Default</th>
+    <th>Required</th>
   </tr>
   <tr>
     <td>name</td>
     <td>Name of the backup to be created. All snapshots in the backup will be created
 with this name.</td>
     <td></td>
+    <td>Yes</td>
   </tr>
   <tr>
     <td>lineage</td>
     <td>Lineage in which the backup must belong</td>
     <td></td>
+    <td>Yes</td>
   </tr>
   <tr>
     <td>description</td>
     <td>Description for the backup</td>
     <td></td>
+    <td>No</td>
   </tr>
   <tr>
     <td>from_master</td>
     <td>Set this to 'true' to create a <tt>rs_backup:from_master=true</tt> true on the
 snapshots which can be used in filtering</td>
-    <td></td>
+    <td><tt>false</tt></td>
+    <td>No</td>
   </tr>
   <tr>
     <td>timeout</td>
     <td>Throws an error if the volume could not be backed up in the cloud within this
 timeout (in minutes)</td>
     <td><tt>15</tt></td>
+    <td>No</td>
   </tr>
 </table>
 
@@ -124,30 +132,42 @@ Restores a backup from the cloud. This will
 * create a volume for each snapshot in the backup
 * attach all the created volumes to the server at the device specified in the snapshot
 (obtained from `rs_backup:device=`). NOTE: If the devices are already being used on the
-server, the restore fails.
+server, the restore will fail.
 
-**Parameters**
+#### Attributes
 <table>
   <tr>
     <th>Name</th>
     <th>Description</th>
     <th>Default</th>
+    <th>Required</th>
   </tr>
   <tr>
     <td>name</td>
     <td>Name of the backup to be restored</td>
     <td></td>
+    <td>Yes</td>
   </tr>
   <tr>
     <td>lineage</td>
     <td>Lineage in which the backup belongs</td>
     <td></td>
+    <td>Yes</td>
+  </tr>
+  <tr>
+    <td>description</td>
+    <td>Description to be set for the volumes created from the snapshots in the
+backup. If description is not given, the description in the snapshots will be used
+for the newly created volumes.</td>
+    <td></td>
+    <td>No</td>
   </tr>
   <tr>
     <td>timestamp</td>
-    <td>The timestamp on the backup. The latest *perfect backup* on or before the
+    <td>The timestamp on the backup. The latest <em>perfect backup</em> on or before the
 this timestamp in the specified lineage will be picked for restore.</td>
     <td></td>
+    <td>No</td>
   </tr>
   <tr>
     <td>size</td>
@@ -157,17 +177,20 @@ WARNING: Some clouds do not support volume resizing and throws an exception when
 pass this parameter. On clouds that supports resizing (currently only tested in EC2),
 the volumes will be created with this size instead of the original backup's size.</td>
     <td></td>
+    <td>No</td>
   </tr>
   <tr>
     <td>timeout</td>
     <td>Throws an error if the volume could not be restored within this timeout (in minutes)</td>
     <td><tt>15</tt></td>
+    <td>No</td>
   </tr>
   <tr>
     <td>options</td>
-    <td>Optional parameters hash. For example, +:volume_type+ on Rackspace Open Clouds
+    <td>Optional parameters hash. For example, <tt>:volume_type</tt> on Rackspace Open Clouds
 can be specified to restore the volume as an 'SATA' or 'SSD' device.</td>
     <td></td>
+    <td>No</td>
   </tr>
 </table>
 
@@ -188,48 +211,56 @@ An *imperfect backup* is picked up for clean up only if there exists a perfect b
 with a newer timestamp. No constraints will be applied on *imperfect backups* and all
 of them will be cleaned up.
 
-**Parameters**
+#### Attributes
 <table>
   <tr>
     <th>Name</th>
     <th>Description</th>
     <th>Default</th>
+    <th>Required</th>
   </tr>
   <tr>
     <td>lineage</td>
     <td>Lineage in which the backups belong</td>
     <td></td>
+    <td>Yes</td>
   </tr>
   <tr>
     <td>keep_last</td>
     <td>Number of backups to keep from deleting</td>
     <td><tt>60</tt></td>
+    <td>Yes</td>
   </tr>
   <tr>
     <td>dailies</td>
     <td>Number of daily backups to keep</td>
     <td><tt>1</tt></td>
+    <td>No</td>
   </tr>
   <tr>
     <td>monthlies</td>
-    <td>Number of monthy backups to keep</td>
+    <td>Number of monthly backups to keep</td>
     <td><tt>12</tt></td>
+    <td>No</td>
   </tr>
   <tr>
     <td>weeklies</td>
     <td>Number of weekly backups to keep</td>
     <td><tt>4</tt></td>
+    <td>No</td>
   </tr>
   <tr>
     <td>yearlies</td>
     <td>Number of yearly backups to keep</td>
     <td><tt>2</tt></td>
+    <td>No</td>
   </tr>
   <tr>
     <td>timeout</td>
     <td>Throws an error if the volume could not be cleaned up in the cloud within this
 timeout (in minutes)</td>
     <td><tt>15</tt></td>
+    <td>No</td>
   </tr>
 </table>
 
@@ -286,7 +317,7 @@ end
 ```
 
 [RightAPI Client]: https://rubygems.org/gems/right_api_client
-[RightScale Volume]: https://github.com/rightscale-cookbooks/rightscale_volume
+[RightScale Volume]: http://community.opscode.com/cookbooks/rightscale_volume
 
 # Author
 

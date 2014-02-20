@@ -23,8 +23,6 @@ require 'mixlib/shellout'
 #
 module RightscaleBackupTest
   module Helper
-    MOUNT_POINT = '/mnt/storage'
-
     # Initializes `right_api_client`.
     #
     # @return [RightApi::Client] the client instance
@@ -180,6 +178,19 @@ module RightscaleBackupTest
     #
     # @return [Array] the array of filters in the supported format
     #
+    # @example Given filters as follows
+    #
+    # {
+    #   :name => "some_name",
+    #   :value => "!2",
+    #   :foo => "<>something"
+    #   :bar => "==foo"
+    # }
+    #
+    # The output of this method will be
+    #
+    # ["name==some_name", "value<>2", "foo<>something", "bar==foo"]
+    #
     def build_filters(filters)
       filters.map do |name, filter|
         case filter.to_s
@@ -197,6 +208,7 @@ module RightscaleBackupTest
     # Formats the device as ext3 and mounts it to a mount point.
     #
     # @param device [String] the device to be formatted and mounted
+    # @param mount_point [String] the path where the device must be mounted
     #
     def format_and_mount_device(device, mount_point)
       Chef::Log.info "Formatting #{device} as ext3..."
@@ -210,6 +222,7 @@ module RightscaleBackupTest
     # Unmounts device from the mount point.
     #
     # @param device [String] the device to be unmounted
+    # @param mount_point [String] the path where the device must be mounted
     #
     def unmount_device(device, mount_point)
       Chef::Log.info "Unmounting #{device} from #{mount_point}"
@@ -218,8 +231,10 @@ module RightscaleBackupTest
 
     # Generates a random test file.
     #
+    # @param mount_point [String] the path where the device must be mounted
+    #
     def generate_test_file(mount_point)
-      test_file = mount_point + '/test_file'
+      test_file = File.join(mount_point, 'test_file')
       Chef::Log.info "Generating random file into #{test_file}..."
       execute_command("dd if=/dev/urandom of=#{test_file} bs=16M count=8")
     end
@@ -231,6 +246,8 @@ module RightscaleBackupTest
     def execute_command(command)
       command = Mixlib::ShellOut.new(command)
       command.run_command
+      Chef::Log.debug command.stdout
+      Chef::Log.debug command.stderr
       command.error!
     end
   end

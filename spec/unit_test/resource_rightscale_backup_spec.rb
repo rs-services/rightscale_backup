@@ -35,6 +35,10 @@ describe Chef::Resource::RightscaleBackup do
       resource.name.should == 'test_backup'
     end
 
+    it "has a lineage attribute which is a required attribute" do
+      expect { resource.lineage(nil) }.to raise_error(Chef::Exceptions::ValidationFailed)
+    end
+
     it "has a lineage attribute to set backup lineage" do
       resource.lineage('test_lineage')
       resource.lineage.should == 'test_lineage'
@@ -48,6 +52,14 @@ describe Chef::Resource::RightscaleBackup do
     it "has a timestamp attribute to specify the backup to restore" do
       resource.timestamp(113456789)
       resource.timestamp.should == 113456789
+    end
+
+    it "has a timestamp attribute which takes only integer or Time object" do
+      time = Time.now
+      resource.timestamp(time)
+      resource.timestamp.should == time
+
+      expect { resource.timestamp('113456789') }.to raise_error(Chef::Exceptions::ValidationFailed)
     end
 
     it "has a devices attribute for specifying the devices to backup" do
@@ -65,7 +77,7 @@ describe Chef::Resource::RightscaleBackup do
     end
 
     it "has a from_master attribute which takes only boolean values" do
-      expect { restore.from_master('true') }.to raise_error
+      expect { resource.from_master('true') }.to raise_error(Chef::Exceptions::ValidationFailed)
     end
 
     it "has a size attribute to set the size for the volume during backup restore" do
@@ -86,11 +98,11 @@ describe Chef::Resource::RightscaleBackup do
     end
 
     it "has attributes for setting backup rotation options which takes only Integer" do
-      expect { resource.keep_last('10') }.to raise_error
-      expect { resource.dailies('10') }.to raise_error
-      expect { resource.weeklies('10') }.to raise_error
-      expect { resource.monthlies('10') }.to raise_error
-      expect { resource.yearlies('10') }.to raise_error
+      expect { resource.keep_last('10') }.to raise_error(Chef::Exceptions::ValidationFailed)
+      expect { resource.dailies('10') }.to raise_error(Chef::Exceptions::ValidationFailed)
+      expect { resource.weeklies('10') }.to raise_error(Chef::Exceptions::ValidationFailed)
+      expect { resource.monthlies('10') }.to raise_error(Chef::Exceptions::ValidationFailed)
+      expect { resource.yearlies('10') }.to raise_error(Chef::Exceptions::ValidationFailed)
     end
 
     it "has an options attribute to pass optional parameters like volume type" do
@@ -99,15 +111,15 @@ describe Chef::Resource::RightscaleBackup do
     end
 
     it "has an options attribute which takes only hashes" do
-      expect { resource.options('10') }.to raise_error
+      expect { resource.options('10') }.to raise_error(Chef::Exceptions::ValidationFailed)
     end
 
     it "has an attribute called 'timeout'" do
-      resource.timeout == 15
+      resource.timeout.should == 15
     end
 
     it "has a timeout attribute which takes only integer values" do
-      expect { resource.max_snapshots('10') }.to raise_error
+      expect { resource.timeout('10') }.to raise_error(Chef::Exceptions::ValidationFailed)
     end
   end
 end
