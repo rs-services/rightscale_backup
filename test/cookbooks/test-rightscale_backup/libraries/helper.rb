@@ -145,15 +145,20 @@ module RightscaleBackupTest
       false
     end
 
-    # Waits for backups to complete.
+    # Waits for the backup to complete.
     #
+    # @param name [String] the backup name
     # @param lineage [String] the backup lineage
     #
-    def wait_for_backups(lineage)
-      backup = get_backups(lineage, "committed" => "true").first
-      while (completed = backup.show.completed) != true
+    def wait_for_backups(name, lineage)
+      completed = false
+      while completed != true
+        backup = get_backups(lineage, "committed" => "true")
+        backup.reject! { |bkp| bkp.show.name != name }
+
         Chef::Log.info "Waiting for backup to complete... Status is '#{completed}'"
         sleep 5
+        completed = backup.show.completed
       end
     end
 

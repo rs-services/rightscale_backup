@@ -88,6 +88,12 @@ ruby_block "ensure backup #{backup_1} created" do
   end
 end
 
+ruby_block "ensure that the backup is complete" do
+  block do
+    wait_for_backups(backup_1, backup_lineage)
+  end
+end
+
 # Take another backup for testing clean up action
 rightscale_backup backup_2 do
   lineage backup_lineage
@@ -108,7 +114,7 @@ end
 
 ruby_block "ensure that the backup is complete" do
   block do
-    wait_for_backups(backup_lineage)
+    wait_for_backups(backup_2, backup_lineage)
   end
 end
 
