@@ -9,6 +9,6 @@ Berksfile.lock
 /cookbooks
 
 # Bundler
-# Gemfile.lock
+Gemfile.lock
 # bin/*
-# .bundle/*
+.bundle/*
