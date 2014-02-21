@@ -106,6 +106,12 @@ ruby_block "ensure backup #{backup_2} created" do
   end
 end
 
+ruby_block "ensure that the backup is complete" do
+  block do
+    wait_for_backups(backup_lineage)
+  end
+end
+
 # Detach and delete volume 1 and 2
 ruby_block "unmount #{test_volume_1}" do
   block do

@@ -145,6 +145,18 @@ module RightscaleBackupTest
       false
     end
 
+    # Waits for backups to complete.
+    #
+    # @param lineage [String] the backup lineage
+    #
+    def wait_for_backups(lineage)
+      backup = get_backups(lineage, "committed" => "true").first
+      while (completed = backup.show.completed) != true
+        Chef::Log.info "Waiting for backup to complete... Status is '#{completed}'"
+        sleep 5
+      end
+    end
+
     # Checks if the volume is detached from an instance in the cloud.
     #
     # @param volume_id [String] the ID of the volume to be queried
