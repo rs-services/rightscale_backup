@@ -159,7 +159,7 @@ class Chef
         Chef::Log.info "Creating a backup with the following parameters: #{params.inspect}..."
         new_backup = @api_client.backups.create(params)
 
-        unless node['cloud']['provider'] == 'google' || node['cloud']['provider'] == 'ec2'
+        unless ['google', 'gce', 'ec2'].include?(node['cloud']['provider'])
           Timeout::timeout(@current_resource.timeout * 60) do
             begin
               # Wait till the backup is complete.
