@@ -133,10 +133,10 @@ module RightscaleBackupTest
     #
     def is_backup_created?(name, lineage)
       filter = {
-        "committed" => "true",
-        "completed" => "true"
+        "committed" => "true"
       }
       backups = get_backups(lineage, filter).map { |backup| backup.name }
+
       if backups.empty?
         return false
       else
