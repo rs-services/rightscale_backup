@@ -158,15 +158,18 @@ class Chef
         # Call the API to create the backup.
         Chef::Log.info "Creating a backup with the following parameters: #{params.inspect}..."
         new_backup = @api_client.backups.create(params)
-        Timeout::timeout(@current_resource.timeout * 60) do
-          begin
-            # Wait till the backup is complete.
-            while (completed = new_backup.show.completed) != true
-              Chef::Log.info "Waiting for backup to complete... Status is '#{completed}'"
-              sleep 5
+
+        unless node['cloud']['provider'] == 'google' || node['cloud']['provider'] == 'ec2'
+          Timeout::timeout(@current_resource.timeout * 60) do
+            begin
+              # Wait till the backup is complete.
+              while (completed = new_backup.show.completed) != true
+                Chef::Log.info "Waiting for backup to complete... Status is '#{completed}'"
+                sleep 5
+              end
+            rescue Timeout::Error => e
+              raise e, "Backup did not create within #{@current_resource.timeout * 60} seconds!"
             end
-          rescue Timeout::Error => e
-            raise e, "Backup did not create within #{@current_resource.timeout * 60} seconds!"
           end
         end
 

@@ -164,8 +164,9 @@ for the newly created volumes.</td>
   </tr>
   <tr>
     <td>timestamp</td>
-    <td>The timestamp on the backup. The latest <em>perfect backup</em> on or before the
-this timestamp in the specified lineage will be picked for restore.</td>
+    <td>The timestamp on the backup. The latest <em>perfect backup</em> on or before
+this timestamp in the specified lineage will be picked for restore. This attribute
+can be set using the Time class or the seconds since UNIX epoch (Integer)</td>
     <td></td>
     <td>No</td>
   </tr>
