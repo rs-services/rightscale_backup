@@ -154,7 +154,7 @@ module RightscaleBackupTest
       completed = false
       while completed != true
         backup = get_backups(lineage, "committed" => "true")
-        backup.reject! { |bkp| bkp.show.name != name }
+        backup = backup.select { |bkp| bkp.show.name == name }.first
 
         Chef::Log.info "Waiting for backup to complete... Status is '#{completed}'"
         sleep 5
