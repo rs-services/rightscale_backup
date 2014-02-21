@@ -283,6 +283,7 @@ describe Chef::Provider::RightscaleBackup do
 
     describe "#create_backup" do
       it "should create the backup in the cloud" do
+        node.set['cloud']['provider'] = 'some_cloud'
         new_resource.lineage('some_lineage')
         new_resource.name('some_name')
         new_resource.description('some description')
