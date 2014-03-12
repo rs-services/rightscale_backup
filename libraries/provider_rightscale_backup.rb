@@ -245,8 +245,10 @@ class Chef
       def get_volume_attachment_hrefs
         attachments = @api_client.volume_attachments.index(:filter => ["instance_href==#{get_instance_href}"])
 
-        # Reject attachments whose device parameter is set to 'unknown'
-        attachments.reject! { |attachment| attachment.device == 'unknown' }
+        # Reject attachments whose device parameter is set to 'unknown'. Also skip the boot disk on gce.
+        attachments.reject! do |attachment|
+          attachment.device == 'unknown' || attachment.resource_uid =~ /\/disks\/boot-/
+        end
         attachments.map { |attachment| attachment.href }
       end
 
