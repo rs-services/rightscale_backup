@@ -75,18 +75,30 @@ class Chef
             " Please check the lineage and/or timestamp and try again."
         end
 
-        devices_before_restore = get_current_devices
-        restore_status = restore_backup(backup, @new_resource.options)
+        node.set['rightscale_backup'][@current_resource.name] ||= {}
+        node.set['rightscale_backup'][@current_resource.name]['devices'] = []
 
-        if restore_status == 'completed'
-          restored_devices = get_current_devices - devices_before_restore
-          node.set['rightscale_backup'][@current_resource.name] ||= {}
-          node.set['rightscale_backup'][@current_resource.name]['devices'] = restored_devices
-          Chef::Log.info "Backups were restored successfully to #{restored_devices.join(', ')}"
-          @new_resource.updated_by_last_action(true)
-        else
-          raise "Backups were not restored successfully!"
+        updates = backup.volume_snapshots.sort_by { |snapshot| snapshot['position'].to_i }.each do |snapshot|
+          r = rightscale_volume "#{@new_resource.name}_#{snapshot['position']}" do
+            size @new_resource.size if @new_resource.size
+            description @new_resource.description if @new_resource.description
+            snapshot_id snapshot['resource_uid']
+            options @new_resource.options
+            timeout @new_resource.timeout if @new_resource.timeout
+
+            action :nothing
+          end
+
+          r.run_action(:create)
+          r.run_action(:attach)
+
+          node.set['rightscale_backup'][@current_resource.name]['devices'] <<
+            node['rightscale_volume']["#{@new_resouce.name}_#{snapshot['position']}"]['device']
+
+          r.updated?
         end
+
+        @new_resource.updated_by_last_action(updates.any?)
       end
 
       # Cleans up old backups from the cloud.
@@ -294,81 +306,6 @@ class Chef
         client = RightApi::Client.new(options)
         client.log(Chef::Log.logger)
         client
-      end
-
-      # Restores a given backup and waits for the restore to complete.
-      #
-      # @param backup [RightApi::ResourceDetail] the backup to be restored
-      # @param options [Hash{Symbol => String}] the options for restore
-      # @option options [String] :volume_type the volume type of the volume being
-      #   restored
-      # @option options [String] :iops the IOPS value (supported only in EC2 clouds)
-      #
-      # @return [String, nil] the restore status
-      #
-      # @raise [RestClient::Exception] rescue "Timeout waiting for attachment"
-      # errors (504) and retry
-      # @raise [RuntimeError] if restore failed
-      # @raise [Timeout::Error] if restore did not complete within the timeout
-      #
-      def restore_backup(backup, options = {})
-        params = {
-          :instance_href => get_instance_href,
-          :backup => {
-            :name => @new_resource.name
-          }
-        }
-        params[:backup][:description] = @new_resource.description if @new_resource.description
-        params[:backup][:size] = @new_resource.size if @new_resource.size
-
-        if options[:volume_type]
-          volume_type_href = get_volume_type_href(options[:volume_type])
-          params[:backup][:volume_type_href] = volume_type_href unless volume_type_href.nil?
-        end
-
-        restore_status = nil
-        Timeout::timeout(@current_resource.timeout * 60) do
-          begin
-            # Restore API call returns a 'task' API resource
-            # http://reference.rightscale.com/api1.5/resources/ResourceTasks.html
-            Chef::Log.info "Restoring backup with the following parameters: #{params.inspect}..."
-            restore = backup.restore(params)
-          rescue RestClient::Exception => e
-            if e.http_code == 504
-              Chef::Log.warn "Timeout waiting for attachment - #{e.message}! Retrying..."
-              sleep 2
-              retry
-            end
-            raise e
-          end
-
-          # Wait for restore to complete
-          begin
-            # Summary attribute of 'task' resource will be in this format
-            # "restore_status: Attach volumes to instance through API"
-            # Example, "completed: Attach volumes to instance through API"
-            # Restore status can be obtained from the first part of summary
-            restore_status = restore.show.summary.split(": ").first
-            while restore_status != "completed"
-              raise "Restore failed with status '#{restore_status}'!" if restore_status == "failed"
-
-              Chef::Log.info " Waiting for restore to complete... Status is #{restore_status}"
-              sleep 5
-              restore_status = restore.show.summary.split(": ").first
-            end
-          rescue RestClient::Exception => e
-            if e.http_code == 504
-              Chef::Log.warn "Timeout waiting for attachment - #{e.message}! Retrying..."
-              sleep 2
-              retry
-            end
-            raise e
-          rescue Timeout::Error => e
-            raise e, "Restore did not complete within #{@current_resource.timeout * 60} seconds!"
-          end
-        end
-
-        restore_status
       end
     end
   end

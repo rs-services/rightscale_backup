@@ -61,7 +61,11 @@ describe Chef::Provider::RightscaleBackup do
     backup.stub(
       :name => 'test_backup',
       :description => 'test_backup description',
-      :completed => true
+      :completed => true,
+      :volume_snapshots => [
+        {
+        }
+      ]
     )
     backup
   end
@@ -123,9 +127,9 @@ describe Chef::Provider::RightscaleBackup do
 
     context "when the backup exists in the node" do
       it "should get the devices in the backup" do
-        node.set['rightscale_backup']['test_backup']['devices'] = ['device_1', 'device_2']
+        node.set['rightscale_backup']['test_backup']['devices'] = ['/dev/sda1', '/dev/sda2']
         provider.load_current_resource
-        provider.current_resource.devices.should == ['device_1', 'device_2']
+        provider.current_resource.devices.should == ['/dev/sda1', '/dev/sda2']
       end
     end
   end
@@ -182,12 +186,12 @@ describe Chef::Provider::RightscaleBackup do
             new_resource.lineage('some_lineage')
             provider.should_receive(:find_latest_backup).and_return(backup_stub)
             provider.stub(:get_current_devices).and_return(
-              ['device_1', 'device_2'],
-              ['device_1', 'device_2', 'device_3']
+              ['/dev/sda1', '/dev/sda2'],
+              ['/dev/sda1', '/dev/sda2', '/dev/sda3']
             )
             provider.should_receive(:restore_backup).and_return('completed')
             run_action(:restore)
-            node['rightscale_backup'][new_resource.name]['devices'].should == ['device_3']
+            node['rightscale_backup'][new_resource.name]['devices'].should == ['/dev/sda3']
           end
 
           context "backup restore failed" do
@@ -195,7 +199,7 @@ describe Chef::Provider::RightscaleBackup do
               new_resource.name('test_backup')
               new_resource.lineage('some_lineage')
               provider.should_receive(:find_latest_backup).and_return(backup_stub)
-              provider.stub(:get_current_devices).and_return(['device_1', 'device_2'])
+              provider.stub(:get_current_devices).and_return(['/dev/sda1', '/dev/sda2'])
               provider.should_receive(:restore_backup).and_return('failed')
               expect { run_action(:restore) }.to raise_error(RuntimeError)
             end
