@@ -24,6 +24,7 @@ describe Chef::Provider::RightscaleBackup do
   let(:provider) do
     provider = Chef::Provider::RightscaleBackup.new(new_resource, run_context)
     provider.stub(:initialize_api_client).and_return(client_stub)
+    provider.stub(:rightscale_volume).and_return(rightscale_volume_stub)
     provider
   end
 
@@ -42,6 +43,13 @@ describe Chef::Provider::RightscaleBackup do
     client = double('RightApi::Client', :log => nil)
     client.stub(:get_instance).and_return(instance_stub)
     client
+  end
+
+  let(:rightscale_volume_stub) do
+    rightscale_volume = double('Chef::Resource')
+    rightscale_volume.stub(:run_action)
+    rightscale_volume.stub(:updated?).and_return(true)
+    rightscale_volume
   end
 
   let(:instance_stub) do
@@ -64,6 +72,8 @@ describe Chef::Provider::RightscaleBackup do
       :completed => true,
       :volume_snapshots => [
         {
+          'resource_uid' => 'v-123456',
+          'position' => 1
         }
       ]
     )
@@ -185,24 +195,9 @@ describe Chef::Provider::RightscaleBackup do
             new_resource.name('test_backup')
             new_resource.lineage('some_lineage')
             provider.should_receive(:find_latest_backup).and_return(backup_stub)
-            provider.stub(:get_current_devices).and_return(
-              ['/dev/sda1', '/dev/sda2'],
-              ['/dev/sda1', '/dev/sda2', '/dev/sda3']
-            )
-            provider.should_receive(:restore_backup).and_return('completed')
+            node.set['rightscale_volume']['test_backup']['device'] = '/dev/sda3'
             run_action(:restore)
             node['rightscale_backup'][new_resource.name]['devices'].should == ['/dev/sda3']
-          end
-
-          context "backup restore failed" do
-            it "should raise an exception" do
-              new_resource.name('test_backup')
-              new_resource.lineage('some_lineage')
-              provider.should_receive(:find_latest_backup).and_return(backup_stub)
-              provider.stub(:get_current_devices).and_return(['/dev/sda1', '/dev/sda2'])
-              provider.should_receive(:restore_backup).and_return('failed')
-              expect { run_action(:restore) }.to raise_error(RuntimeError)
-            end
           end
         end
 
@@ -367,25 +362,6 @@ describe Chef::Provider::RightscaleBackup do
         client_stub.should_receive(:get_instance).and_return(instance_stub)
         instance_href = provider.send(:get_instance_href)
         instance_href.should == 'some_href'
-      end
-    end
-
-    describe "#restore_backup" do
-      it "should restore backup" do
-        new_resource.name('test_backup')
-        new_resource.description('some description')
-        provider.stub(:get_instance_href).and_return('some_href')
-        provider.stub(:get_volume_type_href).and_return('volume_type_href')
-        backup_stub.should_receive(:restore).with({
-          :instance_href => 'some_href',
-          :backup => {
-            :name => 'test_backup',
-            :description => 'some description',
-            :volume_type_href => 'volume_type_href'
-          }
-        }).and_return(task_resource)
-        status = provider.send(:restore_backup, backup_stub, {:volume_type => 'some_type'})
-        status.should == 'completed'
       end
     end
 

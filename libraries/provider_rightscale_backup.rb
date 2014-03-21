@@ -78,27 +78,45 @@ class Chef
         node.set['rightscale_backup'][@current_resource.name] ||= {}
         node.set['rightscale_backup'][@current_resource.name]['devices'] = []
 
-        updates = backup.volume_snapshots.sort_by { |snapshot| snapshot['position'].to_i }.each do |snapshot|
-          r = rightscale_volume "#{@new_resource.name}_#{snapshot['position']}" do
+        if backup.volume_snapshots.size > 1
+          updates = backup.volume_snapshots.sort_by { |snapshot| snapshot['position'].to_i }.each do |snapshot|
+            r = rightscale_volume "#{@new_resource.name}_#{snapshot['position']}" do
+              size @new_resource.size if @new_resource.size
+              description @new_resource.description if @new_resource.description
+              snapshot_id snapshot['resource_uid']
+              options @new_resource.options
+              timeout @new_resource.timeout if @new_resource.timeout
+
+              action :nothing
+            end
+
+            r.run_action(:create)
+            r.run_action(:attach)
+
+            node.set['rightscale_backup'][@current_resource.name]['devices'] <<
+              node['rightscale_volume']["#{@new_resource.name}_#{snapshot['position']}"]['device']
+
+            r.updated?
+          end
+
+          @new_resource.updated_by_last_action(updates.any?)
+        else
+          r = rightscale_volume @new_resource.name do
             size @new_resource.size if @new_resource.size
             description @new_resource.description if @new_resource.description
-            snapshot_id snapshot['resource_uid']
+            snapshot_id backup.volume_snapshots.first['resource_uid']
             options @new_resource.options
             timeout @new_resource.timeout if @new_resource.timeout
 
             action :nothing
           end
-
           r.run_action(:create)
           r.run_action(:attach)
-
           node.set['rightscale_backup'][@current_resource.name]['devices'] <<
-            node['rightscale_volume']["#{@new_resouce.name}_#{snapshot['position']}"]['device']
+            node['rightscale_volume'][@new_resource.name]['device']
 
-          r.updated?
+          @new_resource.updated_by_last_action(r.updated?)
         end
-
-        @new_resource.updated_by_last_action(updates.any?)
       end
 
       # Cleans up old backups from the cloud.
