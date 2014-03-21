@@ -73,7 +73,7 @@ describe Chef::Provider::RightscaleBackup do
       :volume_snapshots => [
         {
           'resource_uid' => 'v-123456',
-          'position' => 1
+          'position' => '1',
         }
       ]
     )
@@ -190,7 +190,7 @@ describe Chef::Provider::RightscaleBackup do
 
     describe "#action_restore" do
       context "given a backup lineage" do
-        context "a backup is found in the lineage" do
+        context "a backup with a single snapshot is found in the lineage" do
           it "should restore the backup" do
             new_resource.name('test_backup')
             new_resource.lineage('some_lineage')
@@ -198,6 +198,43 @@ describe Chef::Provider::RightscaleBackup do
             node.set['rightscale_volume']['test_backup']['device'] = '/dev/sda3'
             run_action(:restore)
             node['rightscale_backup'][new_resource.name]['devices'].should == ['/dev/sda3']
+          end
+        end
+
+        context "a backup with three snapshots is found in the lineage" do
+          let(:backup_stub) do
+            backup = double('backup')
+            backup.stub(
+              :name => 'test_backup',
+              :description => 'test_backup description',
+              :completed => true,
+              :volume_snapshots => [
+                {
+                  'resource_uid' => 'v-123456',
+                  'position' => '1',
+                },
+                {
+                  'resource_uid' => 'v-234567',
+                  'position' => '2',
+                },
+                {
+                  'resource_uid' => 'v-345678',
+                  'position' => '3',
+                },
+              ]
+            )
+            backup
+          end
+
+          it 'should restore the backup' do
+            new_resource.name('test_backup')
+            new_resource.lineage('some_lineage')
+            provider.should_receive(:find_latest_backup).and_return(backup_stub)
+            1.upto(3) do |number|
+              node.set['rightscale_volume']["test_backup_#{number}"]['device'] = "/dev/sda#{number + 2}"
+            end
+            run_action(:restore)
+            node['rightscale_backup'][new_resource.name]['devices'].should == ['/dev/sda3', '/dev/sda4', '/dev/sda5']
           end
         end
 
