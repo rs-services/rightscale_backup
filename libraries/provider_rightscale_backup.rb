@@ -80,12 +80,17 @@ class Chef
 
         if backup.volume_snapshots.size > 1
           updates = backup.volume_snapshots.sort_by { |snapshot| snapshot['position'].to_i }.each do |snapshot|
+            size = @new_resource.size
+            description = @new_resource.description
+            options = @new_resource.options
+            timeout = @new_resource.timeout
+
             r = rightscale_volume "#{@new_resource.name}_#{snapshot['position']}" do
-              size @new_resource.size if @new_resource.size
-              description @new_resource.description if @new_resource.description
+              size size if size
+              description description if description
               snapshot_id snapshot['resource_uid']
-              options @new_resource.options
-              timeout @new_resource.timeout if @new_resource.timeout
+              options options
+              timeout timeout if timeout
 
               action :nothing
             end
@@ -101,12 +106,17 @@ class Chef
 
           @new_resource.updated_by_last_action(updates.any?)
         else
+          size = @new_resource.size
+          description = @new_resource.description
+          options = @new_resource.options
+          timeout = @new_resource.timeout
+
           r = rightscale_volume @new_resource.name do
-            size @new_resource.size if @new_resource.size
-            description @new_resource.description if @new_resource.description
+            size size if size
+            description description if description
             snapshot_id backup.volume_snapshots.first['resource_uid']
-            options @new_resource.options
-            timeout @new_resource.timeout if @new_resource.timeout
+            options options
+            timeout timeout if timeout
 
             action :nothing
           end
