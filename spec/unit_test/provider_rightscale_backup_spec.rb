@@ -59,9 +59,16 @@ describe Chef::Provider::RightscaleBackup do
         'rel' => 'cloud',
         'href' => 'some_cloud_href'
       }],
-      :href => 'some_href'
+      :href => 'some_href',
+      :cloud => cloud_stub
     )
     instance
+  end
+
+  let(:cloud_stub) do
+    cloud = double('cloud')
+    cloud.stub(:href => '/api/clouds/123')
+    cloud
   end
 
   let(:backup_stub) do
@@ -359,7 +366,8 @@ describe Chef::Provider::RightscaleBackup do
           "latest_before==#{timestamp.utc.strftime('%Y/%m/%d %H:%M:%S %z')}",
           "committed==true",
           "completed==true",
-          "from_master==true"
+          "from_master==true",
+          "cloud_href==/api/clouds/123"
         ]
         backup_resource.should_receive(:index).with({
           :lineage => 'some_lineage',
