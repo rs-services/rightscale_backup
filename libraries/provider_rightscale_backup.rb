@@ -236,6 +236,12 @@ class Chef
           "completed==true"
         ]
         filter << "from_master==#{from_master}" if from_master
+
+        # Add cloud href to the list of filters so we only get backups in the current cloud as we can't restore backups
+        # from a different cloud.
+        cloud_href = @api_client.get_instance.cloud.href
+        filter << "cloud_href==#{cloud_href}"
+
         backup = @api_client.backups.index(:lineage => lineage, :filter => filter)
         backup.first
       end
