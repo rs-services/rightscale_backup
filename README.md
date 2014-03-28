@@ -91,7 +91,7 @@ it found is equal to the number in the "rs_backup:count=" tag on each of the sna
     <th>Required</th>
   </tr>
   <tr>
-    <td>name</td>
+    <td>nickname</td>
     <td>Name of the backup to be created. All snapshots in the backup will be created
 with this name.</td>
     <td></td>
@@ -143,7 +143,7 @@ server, the restore will fail.
     <th>Required</th>
   </tr>
   <tr>
-    <td>name</td>
+    <td>nickname</td>
     <td>Name of the backup to be restored</td>
     <td></td>
     <td>Yes</td>

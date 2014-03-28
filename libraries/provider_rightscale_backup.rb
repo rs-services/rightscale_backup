@@ -29,7 +29,7 @@ class Chef
       # making instance-facing RightScale API calls.
       #
       def load_current_resource
-        @current_resource = Chef::Resource::RightscaleBackup.new(@new_resource.name)
+        @current_resource = Chef::Resource::RightscaleBackup.new(@new_resource.nickname)
         node.set['rightscale_backup'] ||= {}
 
         @api_client = initialize_api_client
@@ -85,7 +85,7 @@ class Chef
             options = @new_resource.options
             timeout = @new_resource.timeout
 
-            r = rightscale_volume "#{@new_resource.name}_#{snapshot['position']}" do
+            r = rightscale_volume "#{@new_resource.nickname}_#{snapshot['position']}" do
               size size if size
               description description if description
               snapshot_id snapshot['resource_uid']
@@ -99,7 +99,7 @@ class Chef
             r.run_action(:attach)
 
             node.set['rightscale_backup'][@current_resource.name]['devices'] <<
-              node['rightscale_volume']["#{@new_resource.name}_#{snapshot['position']}"]['device']
+              node['rightscale_volume']["#{@new_resource.nickname}_#{snapshot['position']}"]['device']
 
             r.updated?
           end
@@ -111,7 +111,7 @@ class Chef
           options = @new_resource.options
           timeout = @new_resource.timeout
 
-          r = rightscale_volume @new_resource.name do
+          r = rightscale_volume @new_resource.nickname do
             size size if size
             description description if description
             snapshot_id backup.volume_snapshots.first['resource_uid']
@@ -123,7 +123,7 @@ class Chef
           r.run_action(:create)
           r.run_action(:attach)
           node.set['rightscale_backup'][@current_resource.name]['devices'] <<
-            node['rightscale_volume'][@new_resource.name]['device']
+            node['rightscale_volume'][@new_resource.nickname]['device']
 
           @new_resource.updated_by_last_action(r.updated?)
         end
@@ -184,7 +184,7 @@ class Chef
         params = {
           :backup => {
             :lineage => @new_resource.lineage,
-            :name => @new_resource.name,
+            :name => @new_resource.nickname,
             :volume_attachment_hrefs => attachment_hrefs
           }
         }
