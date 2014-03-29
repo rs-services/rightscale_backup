@@ -24,6 +24,8 @@ class Chef
     # A Chef resource for managing volume backups in RightScale environment.
     #
     class RightscaleBackup < Chef::Resource
+      identity_attr :name
+
       # Initializes rightscale_backup resource.
       #
       # @param name [String] name of the resource.
