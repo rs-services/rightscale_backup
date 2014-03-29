@@ -29,6 +29,7 @@ class Chef
       # making instance-facing RightScale API calls.
       #
       def load_current_resource
+        @new_resource.nickname(@new_resource.name) unless @new_resource.nickname
         @current_resource = Chef::Resource::RightscaleBackup.new(@new_resource.nickname)
         node.set['rightscale_backup'] ||= {}
 
