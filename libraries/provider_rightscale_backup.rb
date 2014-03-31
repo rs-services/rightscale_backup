@@ -30,7 +30,8 @@ class Chef
       #
       def load_current_resource
         @new_resource.nickname(@new_resource.name) unless @new_resource.nickname
-        @current_resource = Chef::Resource::RightscaleBackup.new(@new_resource.nickname)
+        @current_resource = Chef::Resource::RightscaleBackup.new(@new_resource.name)
+        @current_resource.nickname @new_resource.nickname
         node.set['rightscale_backup'] ||= {}
 
         @api_client = initialize_api_client
@@ -39,7 +40,7 @@ class Chef
         # TODO: We don't use this attribute anywhere at the moment. This attribute
         # is intended to be used in the +:create+ action at some point later.
         unless node['rightscale_backup'].empty?
-          @current_resource.devices(node['rightscale_backup'][@current_resource.name]['devices'])
+          @current_resource.devices(node['rightscale_backup'][@current_resource.nickname]['devices'])
         end
         @current_resource.timeout(@new_resource.timeout) if @new_resource.timeout
         @current_resource
@@ -76,8 +77,8 @@ class Chef
             " Please check the lineage and/or timestamp and try again."
         end
 
-        node.set['rightscale_backup'][@current_resource.name] ||= {}
-        node.set['rightscale_backup'][@current_resource.name]['devices'] = []
+        node.set['rightscale_backup'][@current_resource.nickname] ||= {}
+        node.set['rightscale_backup'][@current_resource.nickname]['devices'] = []
 
         if backup.volume_snapshots.size > 1
           updates = backup.volume_snapshots.sort_by { |snapshot| snapshot['position'].to_i }.each do |snapshot|
@@ -99,7 +100,7 @@ class Chef
             r.run_action(:create)
             r.run_action(:attach)
 
-            node.set['rightscale_backup'][@current_resource.name]['devices'] <<
+            node.set['rightscale_backup'][@current_resource.nickname]['devices'] <<
               node['rightscale_volume']["#{@new_resource.nickname}_#{snapshot['position']}"]['device']
 
             r.updated?
@@ -123,7 +124,7 @@ class Chef
           end
           r.run_action(:create)
           r.run_action(:attach)
-          node.set['rightscale_backup'][@current_resource.name]['devices'] <<
+          node.set['rightscale_backup'][@current_resource.nickname]['devices'] <<
             node['rightscale_volume'][@new_resource.nickname]['device']
 
           @new_resource.updated_by_last_action(r.updated?)
