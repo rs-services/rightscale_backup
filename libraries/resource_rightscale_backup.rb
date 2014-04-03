@@ -46,11 +46,11 @@ class Chef
       #
       # @return [String] the backup name
       #
-      def name(arg = nil)
+      def nickname(arg = nil)
         set_or_return(
           :name,
           arg,
-          :kind_of => String
+          :kind_of => String,
         )
       end
 
