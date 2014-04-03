@@ -91,7 +91,7 @@ class Chef
 
           # If there are more than one volume snapshots, the volume nicknames will be appended with the position
           # number else the volume nickname will simply be the backup nickname.
-          volume_name = multiple_snapshots ? "#{@new_resource.nickname}_#{snapshot['position']}" : @new_resource.nickname
+          volume_nickname = multiple_snapshots ? "#{@new_resource.nickname}_#{snapshot['position']}" : @new_resource.nickname
 
           r = rightscale_volume volume_nickname do
             size size if size
@@ -107,7 +107,7 @@ class Chef
           r.run_action(:attach)
 
           node.set['rightscale_backup'][@current_resource.nickname]['devices'] <<
-            node['rightscale_volume']["#{@new_resource.nickname}_#{snapshot['position']}"]['device']
+            node['rightscale_volume'][volume_nickname]['device']
 
           r.updated?
         end
