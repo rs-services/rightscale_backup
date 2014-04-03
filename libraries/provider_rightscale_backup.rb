@@ -80,55 +80,39 @@ class Chef
         node.set['rightscale_backup'][@current_resource.nickname] ||= {}
         node.set['rightscale_backup'][@current_resource.nickname]['devices'] = []
 
-        if backup.volume_snapshots.size > 1
-          updates = backup.volume_snapshots.sort_by { |snapshot| snapshot['position'].to_i }.each do |snapshot|
-            size = @new_resource.size
-            description = @new_resource.description
-            options = @new_resource.options
-            timeout = @new_resource.timeout
+        # If multiple volume snapshots are found in the backup
+        multiple_snapshots = backup.volume_snapshots.size > 1
 
-            r = rightscale_volume "#{@new_resource.nickname}_#{snapshot['position']}" do
-              size size if size
-              description description if description
-              snapshot_id snapshot['resource_uid']
-              options options
-              timeout timeout if timeout
-
-              action :nothing
-            end
-
-            r.run_action(:create)
-            r.run_action(:attach)
-
-            node.set['rightscale_backup'][@current_resource.nickname]['devices'] <<
-              node['rightscale_volume']["#{@new_resource.nickname}_#{snapshot['position']}"]['device']
-
-            r.updated?
-          end
-
-          @new_resource.updated_by_last_action(updates.any?)
-        else
+        updates = backup.volume_snapshots.sort_by { |snapshot| snapshot['position'].to_i }.each do |snapshot|
           size = @new_resource.size
           description = @new_resource.description
           options = @new_resource.options
           timeout = @new_resource.timeout
 
-          r = rightscale_volume @new_resource.nickname do
+          # If there are more than one volume snapshots, the volume nicknames will be appended with the position
+          # number else the volume nickname will simply be the backup nickname.
+          volume_name = multiple_snapshots ? "#{@new_resource.nickname}_#{snapshot['position']}" : @new_resource.nickname
+
+          r = rightscale_volume volume_nickname do
             size size if size
             description description if description
-            snapshot_id backup.volume_snapshots.first['resource_uid']
+            snapshot_id snapshot['resource_uid']
             options options
             timeout timeout if timeout
 
             action :nothing
           end
+
           r.run_action(:create)
           r.run_action(:attach)
-          node.set['rightscale_backup'][@current_resource.nickname]['devices'] <<
-            node['rightscale_volume'][@new_resource.nickname]['device']
 
-          @new_resource.updated_by_last_action(r.updated?)
+          node.set['rightscale_backup'][@current_resource.nickname]['devices'] <<
+            node['rightscale_volume']["#{@new_resource.nickname}_#{snapshot['position']}"]['device']
+
+          r.updated?
         end
+
+        @new_resource.updated_by_last_action(updates.any?)
       end
 
       # Cleans up old backups from the cloud.
