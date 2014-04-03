@@ -3,6 +3,17 @@ rightscale_backup Cookbook CHANGELOG
 
 This file is used to list changes made in each version of the rightscale_backup cookbook.
 
+v1.1.0
+------
+
+- A `nickname` attribute is added which defaults to the value given in name attribute. This is useful if there are
+  multiple resource actions on the same resource and the name needs to be unique.
+- This cookbook now depends `rightscale_volume` and uses the `rightscale_volume` resource to restore a backup and
+  does not rely on the Backups#restore API call.
+- The filter used to search for backups now includes the `cloud_href` so it only searches for the backups on the
+  current cloud.
+- The test-rightscale_backup cookbook omits the boot disks attached on Google servers.
+
 v1.0.1
 ------
 
