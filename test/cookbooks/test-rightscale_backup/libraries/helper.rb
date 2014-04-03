@@ -123,7 +123,7 @@ module RightscaleBackupTest
       filter.merge!({:instance_href => api_client.get_instance.href})
       attachments = api_client.volume_attachments.index(:filter => build_filters(filter))
       # Skip the boot device attachments if there were any
-      attachments.reject { |attachment| attachment.href =~ /\/disks\/boot-/ }
+      attachments.reject { |attachment| attachment.resource_uid =~ /\/disks\/boot-/ }
     end
 
     # Checks if the backup was created in the cloud.
