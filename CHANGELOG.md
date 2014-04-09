@@ -3,6 +3,11 @@ rightscale_backup Cookbook CHANGELOG
 
 This file is used to list changes made in each version of the rightscale_backup cookbook.
 
+v1.1.1
+------
+
+- Removed unused code in the provider that may cause NilClass exceptions at certain cases.
+
 v1.1.0
 ------
 
