@@ -36,12 +36,6 @@ class Chef
 
         @api_client = initialize_api_client
 
-        # From the node, get the list of devices to which the volumes are attached
-        # TODO: We don't use this attribute anywhere at the moment. This attribute
-        # is intended to be used in the +:create+ action at some point later.
-        unless node['rightscale_backup'].empty?
-          @current_resource.devices(node['rightscale_backup'][@current_resource.nickname]['devices'])
-        end
         @current_resource.timeout(@new_resource.timeout) if @new_resource.timeout
         @current_resource
       end

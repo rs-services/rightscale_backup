@@ -141,14 +141,6 @@ describe Chef::Provider::RightscaleBackup do
         provider.current_resource.devices.should be_nil
       end
     end
-
-    context "when the backup exists in the node" do
-      it "should get the devices in the backup" do
-        node.set['rightscale_backup']['test_backup']['devices'] = ['/dev/sda1', '/dev/sda2']
-        provider.load_current_resource
-        provider.current_resource.devices.should == ['/dev/sda1', '/dev/sda2']
-      end
-    end
   end
 
   # Test all actions supported by the provider
