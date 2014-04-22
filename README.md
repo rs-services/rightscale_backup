@@ -16,6 +16,8 @@ rotation/retention, as opposed to simple snapshot truncation.
 The `rightscale_backup` resource uses RightScale's instance-facing API to
 manage backups in the cloud.
 
+Github Repository: [https://github.com/rightscale-cookbooks/rightscale_backup](https://github.com/rightscale-cookbooks/rightscale_backup)
+
 # Requirements
 
 * The system being configured must be a RightScale managed VM to have the
@@ -24,246 +26,8 @@ required access to the RightScale API.
 * Requires a RightScale account that is registered with all the cloud vendors
 you expect to provision on (e.g. AWS, Rackspace, Openstack, CloudStack, GCE,
 and Azure).
-
-# Recipes
-
-## default
-
-The default recipe installs the [right_api_client gem][RightAPI Client] to make
-instance-facing RightScale API calls.
-
-# Resource/Providers
-
-## rightscale_backup
-
-A resource to create, restore, and cleanup backups in the cloud.
-
-### Action: create
-
-Creates a snapshot for every volume attached to the server. The newly created snapshot
-will be tagged with the following
-
-<table>
-  <tr>
-    <th>Tag Name</th>
-    <th>Description</th>
-  </tr>
-  <tr>
-    <td><tt>rs_backup:lineage=&lt;string&gt;</tt></td>
-    <td>Lineage name of the backup</td>
-  </tr>
-  <tr>
-    <td><tt>rs_backup:backup_id=&lt;UUID&gt;</tt></td>
-    <td>Unique identifier for a backup (all snapshots in a backup will share this ID)</td>
-  </tr>
-  <tr>
-    <td><tt>rs_backup:committed=true</tt></td>
-    <td>The backup is committed</td>
-  </tr>
-  <tr>
-    <td><tt>rs_backup:count=X</tt></td>
-    <td>Number of snapshots in the backup</td>
-  </tr>
-  <tr>
-    <td><tt>rs_backup:device=&lt;device&gt;</tt></td>
-    <td>Device to which the volume was attached</td>
-  </tr>
-  <tr>
-    <td><tt>rs_backup:position=Y</tt></td>
-    <td>Position of the snapshot in a backup</td>
-  </tr>
-  <tr>
-    <td><tt>rs_backup:timestamp=&lt;timestamp&gt;</tt></td>
-    <td>Time at which the backup was taken</td>
-  </tr>
-</table>
-
-A backup is considered a *perfect backup* when it is completed (all the snapshots are
-completed), committed (all the snapshots are committed), and the number of snapshots
-it found is equal to the number in the "rs_backup:count=" tag on each of the snapshots.
-
-#### Attributes
-<table>
-  <tr>
-    <th>Name</th>
-    <th>Description</th>
-    <th>Default</th>
-    <th>Required</th>
-  </tr>
-  <tr>
-    <td>nickname</td>
-    <td>Name of the backup to be created. All snapshots in the backup will be created
-with this name.</td>
-    <td></td>
-    <td>Yes</td>
-  </tr>
-  <tr>
-    <td>lineage</td>
-    <td>Lineage in which the backup must belong</td>
-    <td></td>
-    <td>Yes</td>
-  </tr>
-  <tr>
-    <td>description</td>
-    <td>Description for the backup</td>
-    <td></td>
-    <td>No</td>
-  </tr>
-  <tr>
-    <td>from_master</td>
-    <td>Set this to 'true' to create a <tt>rs_backup:from_master=true</tt> true on the
-snapshots which can be used in filtering</td>
-    <td><tt>false</tt></td>
-    <td>No</td>
-  </tr>
-  <tr>
-    <td>timeout</td>
-    <td>Throws an error if the volume could not be backed up in the cloud within this
-timeout (in minutes)</td>
-    <td><tt>15</tt></td>
-    <td>No</td>
-  </tr>
-</table>
-
-### Action: restore
-
-Restores a backup from the cloud. This will
-
-* create a volume for each snapshot in the backup
-* attach all the created volumes to the server at the device specified in the snapshot
-(obtained from `rs_backup:device=`). NOTE: If the devices are already being used on the
-server, the restore will fail.
-
-#### Attributes
-<table>
-  <tr>
-    <th>Name</th>
-    <th>Description</th>
-    <th>Default</th>
-    <th>Required</th>
-  </tr>
-  <tr>
-    <td>nickname</td>
-    <td>Name of the backup to be restored</td>
-    <td></td>
-    <td>Yes</td>
-  </tr>
-  <tr>
-    <td>lineage</td>
-    <td>Lineage in which the backup belongs</td>
-    <td></td>
-    <td>Yes</td>
-  </tr>
-  <tr>
-    <td>description</td>
-    <td>Description to be set for the volumes created from the snapshots in the
-backup. If description is not given, the description in the snapshots will be used
-for the newly created volumes.</td>
-    <td></td>
-    <td>No</td>
-  </tr>
-  <tr>
-    <td>timestamp</td>
-    <td>The timestamp on the backup. The latest <em>perfect backup</em> on or before
-this timestamp in the specified lineage will be picked for restore. This attribute
-can be set using the Time class or the seconds since UNIX epoch (Integer)</td>
-    <td></td>
-    <td>No</td>
-  </tr>
-  <tr>
-    <td>size</td>
-    <td>All volumes created from the snapshot will be of this size. NOTE: This size
-must be equal to or larger than the size of the snapshots in the backup.
-WARNING: Some clouds do not support volume resizing and throws an exception when we
-pass this parameter. On clouds that supports resizing (currently only tested in EC2),
-the volumes will be created with this size instead of the original backup's size.</td>
-    <td></td>
-    <td>No</td>
-  </tr>
-  <tr>
-    <td>timeout</td>
-    <td>Throws an error if the volume could not be restored within this timeout (in minutes)</td>
-    <td><tt>15</tt></td>
-    <td>No</td>
-  </tr>
-  <tr>
-    <td>options</td>
-    <td>Optional parameters hash. For example, <tt>:volume_type</tt> on Rackspace Open Clouds
-can be specified to restore the volume as an 'SATA' or 'SSD' device.</td>
-    <td></td>
-    <td>No</td>
-  </tr>
-</table>
-
-### Action: cleanup
-
-Deletes old backups from the cloud. For all the *perfect backups*, the constraints of
-keep_last, dailies, weeklies, monthlies, and yearlies attributes will be applied
-(See 'Parameters' section below). The algorithm for choosing the backups to keep is
-enforced by the RightScale API which is the union of those set of backups if each of
-those conditions are applied independently.
-
-```
-backups_to_keep = backups_to_keep(keep_last) U backups_to_keep(dailies) U
-backups_to_keep(weeklies) U backups_to_keep(monthlies) U backups_to_keep(yearlies)
-```
-
-An *imperfect backup* is picked up for clean up only if there exists a perfect backup
-with a newer timestamp. No constraints will be applied on *imperfect backups* and all
-of them will be cleaned up.
-
-#### Attributes
-<table>
-  <tr>
-    <th>Name</th>
-    <th>Description</th>
-    <th>Default</th>
-    <th>Required</th>
-  </tr>
-  <tr>
-    <td>lineage</td>
-    <td>Lineage in which the backups belong</td>
-    <td></td>
-    <td>Yes</td>
-  </tr>
-  <tr>
-    <td>keep_last</td>
-    <td>Number of backups to keep from deleting</td>
-    <td><tt>60</tt></td>
-    <td>Yes</td>
-  </tr>
-  <tr>
-    <td>dailies</td>
-    <td>Number of daily backups to keep</td>
-    <td><tt>1</tt></td>
-    <td>No</td>
-  </tr>
-  <tr>
-    <td>monthlies</td>
-    <td>Number of monthly backups to keep</td>
-    <td><tt>12</tt></td>
-    <td>No</td>
-  </tr>
-  <tr>
-    <td>weeklies</td>
-    <td>Number of weekly backups to keep</td>
-    <td><tt>4</tt></td>
-    <td>No</td>
-  </tr>
-  <tr>
-    <td>yearlies</td>
-    <td>Number of yearly backups to keep</td>
-    <td><tt>2</tt></td>
-    <td>No</td>
-  </tr>
-  <tr>
-    <td>timeout</td>
-    <td>Throws an error if the volume could not be cleaned up in the cloud within this
-timeout (in minutes)</td>
-    <td><tt>15</tt></td>
-    <td>No</td>
-  </tr>
-</table>
+* Cookbook dependencies
+  * [rightscale_volume](http://community.opscode.com/cookbooks/rightscale_volume)
 
 # Usage
 
@@ -319,6 +83,87 @@ end
 
 [RightAPI Client]: https://rubygems.org/gems/right_api_client
 [RightScale Volume]: http://community.opscode.com/cookbooks/rightscale_volume
+
+
+# Recipes
+
+## default
+
+The default recipe installs the [right_api_client gem][RightAPI Client] to make
+instance-facing RightScale API calls.
+
+# Resource/Providers
+
+## rightscale_backup
+
+A resource to create, restore, and cleanup backups in the cloud.
+
+### Actions
+
+| Actions | Description | Default |
+| --- | --- | --- |
+| `:create` | Creates a snapshot for every volume attached to the server | yes |
+| `:restore` | Restores a backup from the cloud | |
+| `:cleanup` | Deletes old backups from the cloud | |
+
+### Attributes
+
+| Name | Description | Default | Required |
+| --- | --- | --- | --- |
+| `nickname` | Name of the backup. During `:create` action, all snapshots in the backup will be created with this name. | | Yes |
+| `lineage` | Lineage in which the backup must belong | | Yes |
+| `description` | Description for the backup. During `:restore` action, the volumes created from the snapshots are set with this description. If description is not given, the description in the snapshots will be used for the newly created volumes. | | No |
+| `from_master` | Set this to 'true' to create a `rs_backup:from_master=true` tag on the snapshots which can be used in filtering | `false` | No |
+| `timestamp` | The timestamp on the backup. The latest *perfect backup* on or before this timestamp in the specified lineage will be picked for restore. This attribute can be set using the Time class or the seconds since UNIX epoch (Integer) | | No |
+| `size` | Size of the volume to be restored. All volumes created from the snapshot will be of this size. NOTE: This size must be equal to or larger than the size of the snapshots in the backup. WARNING: Some clouds do not support volume resizing and throws an exception when we pass this parameter. On clouds that supports resizing (currently only tested in EC2), the volumes will be created with this size instead of the original backup's size. | | No |
+| `timeout` | Throws an error if an action could not be completed within this timeout (in minutes) | `15` | No |
+| `options` | Optional parameters hash. For example, `:volume_type` on Rackspace Open Clouds can be specified to restore the volume as an 'SATA' or 'SSD' device. | | No |
+| `keep_last` | Number of backups to keep from deleting | `60` | Yes |
+| `dailies` | Number of daily backups to keep | `1` | No |
+| `monthlies` | Number of monthly backups to keep | `12` | No |
+| `weeklies` | Number of weekly backups to keep | `4` | No |
+| `yearlies` | Number of yearly backups to keep | `2` | No |
+
+### `:create` Action
+
+Creates a snapshot for every volume attached to the server. The newly created snapshot will be tagged with the following
+
+* `rs_backup:lineage=<string>` - Lineage name of the backup
+* `rs_backup:backup_id=<UUID>` - Unique identifier for a backup (all snapshots in a backup will share this ID)
+* `rs_backup:committed=true` - The backup is committed
+* `rs_backup:count=X` - Number of snapshots in the backup
+* `rs_backup:device=<device>` - Device to which the volume was attached
+* `rs_backup:position=Y` - Position of the snapshot in a backup
+* `rs_backup:timestamp=<timestamp>` - Time at which the backup was taken
+A backup is considered a *perfect backup* when it is completed (all the snapshots are
+completed), committed (all the snapshots are committed), and the number of snapshots
+it found is equal to the number in the "rs_backup:count=" tag on each of the snapshots.
+
+### `:restore` Action
+
+Restores a backup from the cloud. This will
+
+* create a volume for each snapshot in the backup
+* attach all the created volumes to the server at the device specified in the snapshot
+(obtained from `rs_backup:device=`). NOTE: If the devices are already being used on the
+server, the restore will fail.
+
+### `:cleanup` Action
+
+Deletes old backups from the cloud. For all the *perfect backups*, the constraints of
+keep_last, dailies, weeklies, monthlies, and yearlies attributes will be applied
+(See 'Parameters' section below). The algorithm for choosing the backups to keep is
+enforced by the RightScale API which is the union of those set of backups if each of
+those conditions are applied independently.
+
+```
+backups_to_keep = backups_to_keep(keep_last) U backups_to_keep(dailies) U
+backups_to_keep(weeklies) U backups_to_keep(monthlies) U backups_to_keep(yearlies)
+```
+
+An *imperfect backup* is picked up for clean up only if there exists a perfect backup
+with a newer timestamp. No constraints will be applied on *imperfect backups* and all
+of them will be cleaned up.
 
 # Author
 
