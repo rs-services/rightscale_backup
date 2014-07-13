@@ -226,28 +226,6 @@ class Chef
         backup.first
       end
 
-      # Gets all supported devices from /proc/partitions.
-      #
-      # @return [Array<String>] the devices list.
-      #
-      def get_current_devices
-        # Read devices that are currently in use from the last column in /proc/partitions
-        partitions = IO.readlines("/proc/partitions").drop(2).map { |line| line.chomp.split.last }
-
-        # Eliminate all LVM partitions
-        partitions = partitions.reject { |partition| partition =~ /^dm-\d/ }
-
-        # Get all the devices in the form of sda, xvda, hda, etc.
-        devices = partitions.select { |partition| partition =~ /[a-z]$/ }.sort.map { |device| "/dev/#{device}" }
-
-        # If no devices found in those forms, check for devices in the form of sda1, xvda1, hda1, etc.
-        if devices.empty?
-          devices = partitions.select { |partition| partition =~ /[0-9]$/ }.sort.map { |device| "/dev/#{device}" }
-        end
-
-        devices
-      end
-
       # Gets the href of the cloud.
       #
       # @return [String] the cloud href
