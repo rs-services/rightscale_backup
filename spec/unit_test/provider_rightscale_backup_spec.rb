@@ -402,31 +402,5 @@ describe Chef::Provider::RightscaleBackup do
       end
     end
 
-    describe "#get_current_devices" do
-      let(:devices) do
-        proc_partitions = [
-          'major minor  #blocks  name',
-          '',
-          '1        0  123456789 xvda',
-          '1        1     123456 xvda1',
-          '2        0    1234567 dm-0',
-          '3        0    1234567 dm-1'
-        ]
-        IO.stub(:readlines).and_return(proc_partitions)
-        provider.send(:get_current_devices)
-      end
-
-      it "should return at least one partition" do
-        devices.should have_at_least(1).items
-      end
-
-      it "should not list LVM partitions" do
-        devices.select { |item| item =~ /dm-\d/ }.should be_empty
-      end
-
-      it "should return items with '/dev' string prefix" do
-        devices.reject { |item| item =~ /^\/dev/ }.should be_empty
-      end
-    end
   end
 end
