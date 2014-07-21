@@ -3,6 +3,14 @@ rightscale_backup Cookbook CHANGELOG
 
 This file is used to list changes made in each version of the rightscale_backup cookbook.
 
+v1.1.2
+------
+
+- Update README to follow format guidelines.
+- Add [shields.io](http://shields.io/) badges to README.
+- Remove unused method definition, `get_current_devices`. This method is available in the `rightscale_volume` cookbook.
+- Update `rightscale_volume` dependency to version 1.2.0.
+
 v1.1.1
 ------
 
