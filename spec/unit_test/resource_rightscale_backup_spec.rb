@@ -73,7 +73,7 @@ describe Chef::Resource::RightscaleBackup do
     end
 
     it "has a from_master attribute to denote a backup was taken from a master" do
-      resource.from_master.should be_false
+      expect(resource.from_master).to be false
     end
 
     it "has a from_master attribute which takes only boolean values" do

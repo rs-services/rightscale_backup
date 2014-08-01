@@ -249,14 +249,14 @@ class Chef
       def get_volume_attachment_hrefs
         attachments = @api_client.volume_attachments.index(:filter => ["instance_href==#{get_instance_href}"])
 
-        # Reject attachments whose device parameter is set to 'unknown'. Also skip the boot disk on gce.
+        # Reject following attachments:
+        #   - attachments whose device parameter is set to 'unknown'
+        #   - gce boot disk - shown by resource_uid of /disks/boot-*
+        #   - aws ebs boot disk  - shown by device_id as '/dev/sda1'
         attachments.reject! do |attachment|
-          attachment.device == 'unknown' || attachment.resource_uid =~ /\/disks\/boot-/
-        end
-
-        # Reject AWS EBS root volumes - shown by device_id as '/dev/sda1'.
-        attachments.reject! do |attachment|
-          node['cloud']['provider'] == 'ec2' && attachment.device_id == '/dev/sda1'
+          attachment.device == 'unknown' ||
+          attachment.resource_uid =~ /\/disks\/boot-/ ||
+          ( node['cloud']['provider'] == 'ec2' && attachment.device_id == '/dev/sda1' )
         end
 
         attachments.map { |attachment| attachment.href }
