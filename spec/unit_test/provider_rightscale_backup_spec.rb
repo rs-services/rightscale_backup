@@ -107,6 +107,7 @@ describe Chef::Provider::RightscaleBackup do
     attachment.stub(
       :state => 'available',
       :device => 'some_device',
+      :device_id => 'some_device_id',
       :href => 'some_href',
       :resource_uid => 'v-123456'
     )
@@ -118,6 +119,7 @@ describe Chef::Provider::RightscaleBackup do
     attachment.stub(
       :state => 'available',
       :device => 'some_device',
+      :device_id => 'some_device_id',
       :href => 'some_href',
       :resource_uid => 'projects/example.com:test/disks/boot-i-12345'
     )
@@ -371,6 +373,7 @@ describe Chef::Provider::RightscaleBackup do
 
     describe "#get_volume_attachment_hrefs" do
       it "should return the attached volumes based on the given filter" do
+        node.set['cloud']['provider'] = 'some_cloud'
         client_stub.should_receive(:volume_attachments).and_return(volume_attachment_resource)
         volume_attachment_resource.should_receive(:index).and_return([volume_attachment_stub])
         attachment_hrefs = provider.send(:get_volume_attachment_hrefs)
@@ -378,6 +381,7 @@ describe Chef::Provider::RightscaleBackup do
       end
 
       it "should skip the boot disk attached to the instance" do
+        node.set['cloud']['provider'] = 'some_cloud'
         client_stub.should_receive(:volume_attachments).and_return(volume_attachment_resource)
         volume_attachment_resource.should_receive(:index).and_return([boot_volume_attachment_stub])
         attachment_hrefs = provider.send(:get_volume_attachment_hrefs)
