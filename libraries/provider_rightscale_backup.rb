@@ -256,7 +256,7 @@ class Chef
         attachments.reject! do |attachment|
           attachment.device == 'unknown' ||
           attachment.resource_uid =~ /\/disks\/boot-/ ||
-          ( node['cloud']['provider'] == 'ec2' && attachment.device_id == '/dev/sda1' )
+          (node['cloud']['provider'] == 'ec2' && attachment.device_id == '/dev/sda1')
         end
 
         attachments.map { |attachment| attachment.href }
