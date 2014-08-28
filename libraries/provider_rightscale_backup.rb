@@ -300,7 +300,6 @@ class Chef
           :instance_token => instance_token,
           :api_url => "https://#{ENV["RS_SERVER"]}",
           :timeout => 20 * 60,
-          :open_timeout => 20 * 60,
         }.merge options
 
         client = RightApi::Client.new(options)
