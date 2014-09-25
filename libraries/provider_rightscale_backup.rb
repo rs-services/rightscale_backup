@@ -262,26 +262,6 @@ class Chef
         attachments.map { |attachment| attachment.href }
       end
 
-      # Gets href of a volume type for a given volume type name. This returns nil
-      # for all clouds that does not support volume types. Currently only
-      # Rackspace Open Cloud supports volume types.
-      #
-      # @param volume_type [String] the volume type name
-      #
-      # @return [String, nil] the volume type href
-      #
-      def get_volume_type_href(volume_type)
-        case node['cloud']['provider']
-        when "rackspace-ng"
-          # Rackspace Open Cloud offers two types of devices - SATA and SSD
-          volume_types = @api_client.volume_types.index
-
-          # Set SATA as the default volume type for Rackspace Open Cloud
-          volume_type = 'SATA' if volume_type.nil?
-          volume_types.detect { |type| type.name.downcase == volume_type.downcase }.href
-        end
-      end
-
       # Initializes API client for handling RightScale instance facing API 1.5 calls.
       #
       # @param options [Hash] the optional parameters to the client
