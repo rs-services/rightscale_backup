@@ -6,6 +6,9 @@ before_script: bundle exec berks install
 script: bundle exec strainer test --except kitchen
 notifications:
   irc:
-    channels: ["chat.freenode.net#rightscale"]
+    channels:
+    - chat.freenode.net#rightscale
     use_notice: true
     skip_join: true
+  slack:
+    secure: D1rDJwkwTuhM4Sf9OMunfcps77V6rFJ6rmBewNOKNz1N1G72iv4gNJEHnsMmbZ8B7qBvtlBySsJkRzEBrWhTkEw4UqjYXsiMX0qMpwE99bLDnq4qsf0+zsMuiHNKhZF8/FQ5yA7nIlTVEYXw1MxhpZZ8skOg4e1+uCBVdGLvuS8=
