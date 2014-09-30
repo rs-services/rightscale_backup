@@ -8,4 +8,4 @@ version          '1.1.4'
 
 depends 'rightscale_volume', '~> 1.2.2'
 
-recipe "rightscale_backup::default", "Default recipe for installing required packages/gems."
+recipe 'rightscale_backup::default', 'Default recipe for installing required packages/gems.'

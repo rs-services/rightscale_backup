@@ -288,48 +288,6 @@ describe Chef::Provider::RightscaleBackup do
       end
     end
 
-    describe "#get_volume_type_href" do
-
-      # Creates a dummy volume type.
-      #
-      # @param name [String] name of the volume type
-      # @param id [String] resource UID of the volume type
-      # @param size [String] size of the volume type
-      # @param href [String] href of the volume type
-      #
-      def create_test_volume_type(name, href)
-        volume_type = double('volume_types')
-        volume_type.stub(:name => name, :href => href)
-        volume_type
-      end
-
-      context "when the cloud is not rackspace-ng" do
-        it "should return nil" do
-          node.set['cloud']['provider'] = 'some_cloud'
-          volume_type = provider.send(:get_volume_type_href, 'some_type')
-          volume_type.should be_nil
-        end
-      end
-
-      context "when the cloud is rackspace-ng" do
-        before(:each) do
-          sata = create_test_volume_type('sata', 'sata_href')
-          ssd = create_test_volume_type('ssd', 'ssd_href')
-          volume_type_stub.stub(:index => [sata, ssd])
-          client_stub.stub(:volume_types).and_return(volume_type_stub)
-        end
-
-        it "should return href of the requested volume type" do
-          node.set['cloud']['provider'] = 'rackspace-ng'
-          volume_type = provider.send(:get_volume_type_href, 'SATA')
-          volume_type.should == 'sata_href'
-
-          volume_type = provider.send(:get_volume_type_href, 'SSD')
-          volume_type.should == 'ssd_href'
-        end
-      end
-    end
-
     describe "#create_backup" do
       it "should create the backup in the cloud" do
         node.set['cloud']['provider'] = 'some_cloud'
