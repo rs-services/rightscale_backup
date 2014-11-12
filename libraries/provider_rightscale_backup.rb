@@ -253,10 +253,12 @@ class Chef
         #   - attachments whose device parameter is set to 'unknown'
         #   - gce boot disk - shown by resource_uid of /disks/boot-*
         #   - aws ebs boot disk  - shown by device_id as '/dev/sda1'
+        #   - cloudstack boot disk  - shown by device_id as 'device_id:0'
         attachments.reject! do |attachment|
           attachment.device == 'unknown' ||
           attachment.resource_uid =~ /\/disks\/boot-/ ||
-          (node['cloud']['provider'] == 'ec2' && attachment.device_id == '/dev/sda1')
+          (node['cloud']['provider'] == 'ec2' && attachment.device_id == '/dev/sda1') ||
+          (node['cloud']['provider'] == 'cloudstack' && attachment.device_id == 'device_id:0')
         end
 
         attachments.map { |attachment| attachment.href }
