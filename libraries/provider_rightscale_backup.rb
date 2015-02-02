@@ -78,9 +78,10 @@ class Chef
         multiple_snapshots = backup.volume_snapshots.size > 1
 
         updates = backup.volume_snapshots.sort_by { |snapshot| snapshot['position'].to_i }.each do |snapshot|
-          Chef::Log.info "suggested size: #{@new_resource.size}, snapshot size:#{snapshot.size}"
-          if @new_resource.size < snapshot.size
-            size = snapshot.size
+          Chef::Log.info "suggested size: #{@new_resource.size}, snapshot size:#{snapshot['size']}"
+          if @new_resource.size < snapshot['size']
+            Chef::Log.info "backup suggested size to small(#{@new_resource.size}), picking new size(#{snapshot['size']})"
+            size = snapshot['size']
           else
             size = @new_resource.size
           end
