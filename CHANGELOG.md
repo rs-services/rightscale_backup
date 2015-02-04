@@ -3,6 +3,11 @@ rightscale_backup Cookbook CHANGELOG
 
 This file is used to list changes made in each version of the rightscale_backup cookbook.
 
+v1.1.7
+------
+
+- No longer need to wait for snapshot completion on Rackspace.
+
 v1.1.6
 ------
 
