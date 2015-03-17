@@ -116,6 +116,60 @@ class Chef
       end
       # re-attaches volume instead of restore
       def action_reattach
+        # If no timestamp was specified get the latest backup for the lineage.
+        # API 1.5 does not do an inclusive search for timestamp so
+        # increment by 1
+        timestamp = @new_resource.timestamp ? Time.at(@new_resource.timestamp + 1) : Time.now
+
+        # Get backup for the specified lineage and timestamp
+        backup = find_latest_backup(@new_resource.lineage, timestamp, @new_resource.from_master)
+        if backup.nil?
+          raise " No backups found in lineage '#{@new_resource.lineage}' within timestamp '#{timestamp}'!" +
+            " Please check the lineage and/or timestamp and try again."
+        end
+
+        node.set['rightscale_backup'][@current_resource.nickname] ||= {}
+        node.set['rightscale_backup'][@current_resource.nickname]['devices'] = []
+
+        # If multiple volume snapshots are found in the backup
+        multiple_snapshots = backup.volume_snapshots.size > 1
+
+        updates = backup.volume_snapshots.sort_by { |snapshot| snapshot['position'].to_i }.each do |snapshot|
+          Chef::Log.info "suggested size: #{@new_resource.size}, snapshot size:#{snapshot['size']}"
+          if @new_resource.size < snapshot['size']
+            Chef::Log.info "backup suggested size to small(#{@new_resource.size}), picking new size(#{snapshot['size']})"
+            size = snapshot['size']
+          else
+            size = @new_resource.size
+          end
+          description = @new_resource.description
+          options = @new_resource.options
+          timeout = @new_resource.timeout
+
+          # If there are more than one volume snapshots, the volume nicknames will be appended with the position
+          # number else the volume nickname will simply be the backup nickname.
+          volume_nickname = multiple_snapshots ? "#{@new_resource.nickname}_#{snapshot['position']}" : @new_resource.nickname
+
+          r = rightscale_volume volume_nickname do
+            size size if size
+            description description if description
+            snapshot_id snapshot['resource_uid']
+            options options
+            timeout timeout if timeout
+
+            action :nothing
+          end
+
+          r.run_action(:create)
+          r.run_action(:attach)
+
+          node.set['rightscale_backup'][@current_resource.nickname]['devices'] <<
+            node['rightscale_volume'][volume_nickname]['device']
+
+          r.updated?
+        end
+
+        @new_resource.updated_by_last_action(updates.any?)
       end
 
       # Cleans up old backups from the cloud.
