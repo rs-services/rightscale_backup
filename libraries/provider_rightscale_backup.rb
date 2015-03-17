@@ -160,7 +160,6 @@ class Chef
             action :nothing
           end
 
-          r.run_action(:create)
           r.run_action(:attach)
 
           node.set['rightscale_backup'][@current_resource.nickname]['devices'] <<
