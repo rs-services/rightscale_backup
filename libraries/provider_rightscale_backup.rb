@@ -114,6 +114,9 @@ class Chef
 
         @new_resource.updated_by_last_action(updates.any?)
       end
+      # re-attaches volume instead of restore
+      def action_reattach
+      end
 
       # Cleans up old backups from the cloud.
       #

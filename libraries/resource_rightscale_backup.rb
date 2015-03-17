@@ -36,7 +36,7 @@ class Chef
         super
         @resource_name = :rightscale_backup
         @action = :create
-        @allowed_actions.push(:create, :restore, :cleanup)
+        @allowed_actions.push(:create, :restore, :reattach, :cleanup)
         @provider = Chef::Provider::RightscaleBackup
       end
 
