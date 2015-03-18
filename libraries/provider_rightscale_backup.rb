@@ -130,7 +130,7 @@ class Chef
 
         node.set['rightscale_backup'][@current_resource.nickname] ||= {}
         node.set['rightscale_backup'][@current_resource.nickname]['devices'] = []
-
+        node.set['rightscale_backup'][@current_resource.nickname]['devices'] << '/dev/sdk'
         # If multiple volume snapshots are found in the backup
         multiple_snapshots = backup.volume_snapshots.size > 1
 
@@ -159,7 +159,7 @@ class Chef
 
             action :nothing
           end
-
+          r.run_action(:create)
           r.run_action(:attach)
 
           node.set['rightscale_backup'][@current_resource.nickname]['devices'] <<
