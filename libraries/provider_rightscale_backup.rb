@@ -177,7 +177,7 @@ class Chef
           node.set['rightscale_backup'][nickname_split] ||= {}
           node.set['rightscale_backup'][nickname_split]['devices'] = []
           node.set['rightscale_backup'][nickname_split]['devices'][dev_num_split] = [node['rightscale_volume'][volume_nickname]['device']]
-
+          log node['rightscale_backup'][nickname_split]['devices'][dev_num_split]
           r.updated?
         end
 
