@@ -335,6 +335,20 @@ class Chef
       def find_volumes(filters = {})
         @api_client.volumes.index(:filter => build_filters(filters))
       end
+      def build_filters(filters)
+        filters.map do |name, filter|
+          case filter.to_s
+          when /^(!|<>)(.*)$/
+            operator = "<>"
+            filter = $2
+          when /^(==)?(.*)$/
+            operator = "=="
+            filter = $2
+          end
+          "#{name}#{operator}#{filter}"
+        end
+      end
+
 
       # Initializes API client for handling RightScale instance facing API 1.5 calls.
       #
