@@ -148,6 +148,9 @@ class Chef
           # If there are more than one volume snapshots, the volume nicknames will be appended with the position
           # number else the volume nickname will simply be the backup nickname.
           volume_nickname = multiple_snapshots ? "#{@new_resource.nickname}_#{snapshot['position']}" : @new_resource.nickname
+          node.override['rightscale_volume'][volume_nickname]={}
+          volume_id = find_volume(:name => volume_nickname).first.resource_uid
+          node.override['rightscale_volume'][volume_nickname]['volume_id'] = volume_id
 
           r = rightscale_volume volume_nickname do
             size size if size
@@ -155,7 +158,7 @@ class Chef
             snapshot_id snapshot['resource_uid']
             options options
             timeout timeout if timeout
-
+            volume_id volume_id
             action :nothing
           end
           r.run_action(:attach)
@@ -322,6 +325,15 @@ class Chef
         end
 
         attachments.map { |attachment| attachment.href }
+      end
+
+      # Finds volumes using the given filters.
+      #
+      # @param filters [Hash] the filters to find the volume
+      #
+      # @return [<RightApi::Client::Resource>Array] the volumes found
+      def find_volumes(filters = {})
+        @api_client.volumes.index(:filter => build_filters(filters))
       end
 
       # Initializes API client for handling RightScale instance facing API 1.5 calls.
