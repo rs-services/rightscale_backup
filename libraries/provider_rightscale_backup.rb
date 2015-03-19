@@ -164,8 +164,10 @@ class Chef
           r.run_action(:attach)
 
           log "device_num:#{options[:device_num]}"
+          log "devices:#{node['rightscale_backup'][@current_resource.nickname]['devices']}, class:#{node.set['rightscale_backup'][@current_resource.nickname]['devices'].class}"
           node.set['rightscale_backup'][@current_resource.nickname]['devices'] <<
             node['rightscale_volume'][volume_nickname]['device']
+          node.set['rightscale_backup'][@current_resource.nickname]['devices'][options[:device_num]]=[]
           node.set['rightscale_backup'][@current_resource.nickname]['devices'][options[:device_num]]<<
             node['rightscale_volume'][volume_nickname]['device']
           log "device:#{node['rightscale_volume'][volume_nickname]['device']}"
