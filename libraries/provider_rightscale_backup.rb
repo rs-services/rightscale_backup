@@ -173,7 +173,7 @@ class Chef
           log "device:#{node['rightscale_volume'][volume_nickname]['device']}"
 
           nickname_split=@current_resource.nickname.split('_').first
-          dev_num_split=@current_resource.nickname.split('_').last
+          dev_num_split=@current_resource.nickname.split('_').last.to_i
           node.set['rightscale_backup'][nickname_split] ||= {}
           node.set['rightscale_backup'][nickname_split]['devices'] = []
           node.set['rightscale_backup'][nickname_split]['devices'][dev_num_split] = node['rightscale_volume'][volume_nickname]['device']
