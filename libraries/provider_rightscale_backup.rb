@@ -149,7 +149,7 @@ class Chef
           # number else the volume nickname will simply be the backup nickname.
           volume_nickname = multiple_snapshots ? "#{@new_resource.nickname}_#{snapshot['position']}" : @new_resource.nickname
           node.override['rightscale_volume'][volume_nickname]={}
-          volume_id = find_volume(:name => volume_nickname).first.resource_uid
+          volume_id = find_volumes(:name => volume_nickname).first.resource_uid
           node.override['rightscale_volume'][volume_nickname]['volume_id'] = volume_id
 
           r = rightscale_volume volume_nickname do
